@@ -12,6 +12,7 @@ public strictfp class RobotPlayer {
     static Team them;
 
     static Random gen;
+    static Direction dirToArchons = null;
 
     @SuppressWarnings("unused")
     public static void run(RobotController rc) {
@@ -207,11 +208,10 @@ public strictfp class RobotPlayer {
         return -enemy.getHealth() * rc.getLocation().distanceTo(enemy.getLocation());
     }
 
-    static Direction dirToArchons = null;
     static boolean tryMoveTowardEnemyArchons() throws GameActionException {
         MapLocation[] archonLocs = rc.getInitialArchonLocations(them);
         // target each one in order
-        int idx = (rc.getRoundNum()/300)%archonLocs.length;
+        int idx = (rc.getRoundNum() / 300) % archonLocs.length;
         dirToArchons = rc.getLocation().directionTo(archonLocs[idx]);
         return tryMove(dirToArchons, 45, 20);
     }
