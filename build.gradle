@@ -135,16 +135,37 @@ task run(type: JavaExec, dependsOn: 'build') {
     classpath = sourceSets.main.runtimeClasspath
     args = ['-c=-']
     jvmArgs = [
-        '-Dbc.server.mode=headless',
-        '-Dbc.server.map-path=maps',
-        '-Dbc.server.debug=true',
-        '-Dbc.engine.debug-methods=true',
-        '-Dbc.game.team-a='+project.property('teamA'),
-        '-Dbc.game.team-b='+project.property('teamB'),
-        '-Dbc.game.team-a.url='+sourceSets.main.output.classesDir,
-        '-Dbc.game.team-b.url='+sourceSets.main.output.classesDir,
-        '-Dbc.game.maps='+project.property('maps'),
-        '-Dbc.server.save-file=' + 'matches/' + project.property('teamA') + '-vs-' + project.property('teamB') + '-on-' + project.property('maps') + '.bc17'
+            '-Dbc.server.mode=headless',
+            '-Dbc.server.map-path=maps',
+            '-Dbc.server.debug=true',
+            '-Dbc.engine.debug-methods=true',
+            '-Dbc.game.team-a='+project.property('teamA'),
+            '-Dbc.game.team-b='+project.property('teamB'),
+            '-Dbc.game.team-a.url='+sourceSets.main.output.classesDir,
+            '-Dbc.game.team-b.url='+sourceSets.main.output.classesDir,
+            '-Dbc.game.maps='+project.property('maps'),
+            '-Dbc.server.save-file=' + 'matches/' + project.property('teamA') + '-vs-' + project.property('teamB') + '-on-' + project.property('maps') + '.bc17'
+    ]
+}
+
+task fastrun(type: JavaExec) {
+    description 'Runs a match without starting the client and without checking dependencies.'
+    group 'battlecode'
+
+    main = 'battlecode.server.Main'
+    classpath = sourceSets.main.runtimeClasspath
+    args = ['-c=-']
+    jvmArgs = [
+            '-Dbc.server.mode=headless',
+            '-Dbc.server.map-path=maps',
+            '-Dbc.server.debug=true',
+            '-Dbc.engine.debug-methods=true',
+            '-Dbc.game.team-a='+project.property('teamA'),
+            '-Dbc.game.team-b='+project.property('teamB'),
+            '-Dbc.game.team-a.url='+sourceSets.main.output.classesDir,
+            '-Dbc.game.team-b.url='+sourceSets.main.output.classesDir,
+            '-Dbc.game.maps='+project.property('maps'),
+            '-Dbc.server.save-file=' + 'matches/' + project.property('teamA') + '-vs-' + project.property('teamB') + '-on-' + project.property('maps') + '.bc17'
     ]
 }
 
