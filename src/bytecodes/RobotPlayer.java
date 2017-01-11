@@ -2,6 +2,8 @@ package bytecodes;
 
 import battlecode.common.*;
 
+import java.util.*;
+
 import static bytecodes.Assert.assertEquals;
 
 /**
@@ -29,6 +31,9 @@ public strictfp class RobotPlayer {
         timeCreateArray();
         Clock.yield();
 
+        timeAllocateObject();
+        timeAllocateCollections();
+        timeSimpleLambda();
     }
 
     @SuppressWarnings("unused")
@@ -221,4 +226,102 @@ public strictfp class RobotPlayer {
 
     }
 
+    public static void timeAllocateObject() {
+        int before, after;
+        Object x;
+        before = Clock.getBytecodeNum();
+        x = new Object();
+        after = Clock.getBytecodeNum();
+        int expected = 4;
+        int actual = after - before;
+        assertEquals(expected, actual);
+    }
+    public static void timeAllocateCollections() {
+        int before, after;
+        Collection x;
+        before = Clock.getBytecodeNum();
+        x = new ArrayList();
+        after = Clock.getBytecodeNum();
+        int expected = 21;
+        int actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        x = new LinkedList();
+        after = Clock.getBytecodeNum();
+        expected = 18;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        x = new HashSet();
+        after = Clock.getBytecodeNum();
+        expected = 25;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        AbstractMap y;
+        before = Clock.getBytecodeNum();
+        y = new HashMap();
+        after = Clock.getBytecodeNum();
+        expected = 11;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        x = new PriorityQueue();
+        after = Clock.getBytecodeNum();
+        expected = 40;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        x = new TreeSet();
+        after = Clock.getBytecodeNum();
+        expected = 38;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        y = new TreeMap();
+        after = Clock.getBytecodeNum();
+        expected = 17;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        x = new LinkedHashSet();
+        after = Clock.getBytecodeNum();
+        expected = 92;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        y = new LinkedHashMap();
+        after = Clock.getBytecodeNum();
+        expected = 16;
+        actual = after - before;
+        assertEquals(expected, actual);
+    }
+
+    private interface SimpleLambda {
+        void doIt();
+    }
+    public static void timeSimpleLambda() {
+        int before, after;
+        SimpleLambda x;
+        before = Clock.getBytecodeNum();
+        x = () -> {};
+        after = Clock.getBytecodeNum();
+        int expected = 2;
+        int actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        x.doIt();
+        after = Clock.getBytecodeNum();
+        expected = 3;
+        actual = after - before;
+        assertEquals(expected, actual);
+    }
 }
