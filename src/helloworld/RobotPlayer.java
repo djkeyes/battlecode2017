@@ -99,7 +99,7 @@ public strictfp class RobotPlayer {
     }
 
     static Direction randomDirection() {
-        return new Direction((float) Math.random() * 2 * (float) Math.PI);
+        return new Direction((float) gen.nextDouble() * 2 * (float) Math.PI);
     }
 
     static void tryShakeNearby() throws GameActionException {
