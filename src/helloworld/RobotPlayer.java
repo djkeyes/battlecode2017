@@ -122,13 +122,11 @@ public strictfp class RobotPlayer {
 
     static void tryTrivialWin() throws GameActionException {
         float bullets = rc.getTeamBullets();
-        //int leftToWin = GameConstants.VICTORY_POINTS_TO_WIN - rc.getTeamVictoryPoints();
-        // FIXME this condition isn't currently checked by the server, don't bother
-        //if(bullets > leftToWin*GameConstants.BULLET_EXCHANGE_RATE){
-        //    int bulletsToTrade = leftToWin*GameConstants.BULLET_EXCHANGE_RATE;
-        //    rc.donate(bulletsToTrade);
-        //} else
-        if (rc.getRoundNum() > rc.getRoundLimit() - 3) {
+        int leftToWin = GameConstants.VICTORY_POINTS_TO_WIN - rc.getTeamVictoryPoints();
+        if (bullets > leftToWin * GameConstants.BULLET_EXCHANGE_RATE) {
+            int bulletsToTrade = leftToWin * GameConstants.BULLET_EXCHANGE_RATE;
+            rc.donate(bulletsToTrade);
+        } else if (rc.getRoundNum() > rc.getRoundLimit() - 3) {
             int roundedBullets = (int) (bullets / GameConstants.BULLET_EXCHANGE_RATE) * GameConstants.BULLET_EXCHANGE_RATE;
             rc.donate(roundedBullets);
         }
