@@ -165,6 +165,8 @@ task fastrun(type: JavaExec) {
             '-Dbc.game.team-a.url='+sourceSets.main.output.classesDir,
             '-Dbc.game.team-b.url='+sourceSets.main.output.classesDir,
             '-Dbc.game.maps='+project.property('maps'),
+            '-Dbc.testing.team-a-seed='+project.property('seedA'),
+            '-Dbc.testing.team-b-seed='+project.property('seedB'),
             '-Dbc.server.save-file=' + 'matches/' + project.property('teamA') + '-vs-' + project.property('teamB') + '-on-' + project.property('maps') + '.bc17'
     ]
 }

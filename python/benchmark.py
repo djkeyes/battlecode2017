@@ -32,6 +32,8 @@ runs_per_matchup = 10 # 100 or so would be better
 ###########################################
 print('performing benchmarks for package \'{}\'...'.format(package_to_test))
 
+np.random.seed(2017)
+
 # flatten and checkout
 flattened_benchmarks = []
 for benchmark in benchmarks:
@@ -87,8 +89,11 @@ for i, (generated_package, param) in enumerate(flattened_benchmarks):
             else:
                 teamA = generated_package
                 teamB = package_to_test
-            
-            command = ['./gradlew', 'fastrun', '-PteamA=' + teamA, '-PteamB=' + teamB, '-Pmaps=' + map_name]
+            maxInt = (2**31)-1
+            seedA = np.random.randint(maxInt)
+            seedB = np.random.randint(maxInt)
+            command = ['./gradlew', 'fastrun', '-PteamA=' + teamA, '-PteamB=' + teamB, '-Pmaps=' + map_name,
+                '-PseedA='+str(seedA), '-PseedB='+str(seedB)]
             result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             
             # daniel: normally I get some warnings about L4J logger problems. If there's more errors than that, there might be a problem

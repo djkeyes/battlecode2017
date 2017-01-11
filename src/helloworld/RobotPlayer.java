@@ -5,6 +5,7 @@ import battlecode.common.*;
 import java.util.Random;
 
 public strictfp class RobotPlayer {
+
     static RobotController rc;
     static RobotType type;
 
@@ -38,7 +39,21 @@ public strictfp class RobotPlayer {
         us = rc.getTeam();
         them = us.opponent();
 
-        gen = new Random(rc.getID());
+        // right now, robot IDs are fixed for each map, because each map has a fixed random seed.
+        // to circumvent this, we also take a seed as a command line param.
+        // fortunately, IDs are ints, so we can concatenate them into a long.
+        String seedArg;
+        if(us == Team.A){
+            seedArg = System.getProperty("bc.testing.team-a-seed");
+        } else {
+            seedArg = System.getProperty("bc.testing.team-b-seed");
+        }
+        long seed = rc.getID();
+        if (seedArg != null) {
+            long intSeedArg = Integer.parseInt(seedArg);
+            seed |= (intSeedArg << 32);
+        }
+        gen = new Random(seed);
     }
 
     static void run() throws GameActionException {
