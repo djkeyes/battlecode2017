@@ -135,45 +135,78 @@ public strictfp class RobotPlayer {
     static boolean tryAttackEnemy() throws GameActionException {
         RobotInfo[] robots = rc.senseNearbyRobots(-1, them);
 
-        if (robots.length == 0) {
+        if (robots.length > 0) {
+
+            if (!rc.canFireSingleShot()) {
+                return false;
+            }
+
+            // pick an enemy somehow
+            double maxEnemyScore = Double.NEGATIVE_INFINITY;
+            RobotInfo bestTarget = null;
+            for (RobotInfo enemy : robots) {
+                // we should also check if there is an unobstructed path to the enemy from here
+                // unfortunately, that's complicated. maybe collect all nearby robots and sort by angle? that way we can
+                // binary search these kinds of queries.
+                if (isPathToRobotObstructed(enemy)) {
+                    continue;
+                }
+                double score = evaluateEnemy(enemy);
+                if (score > maxEnemyScore) {
+                    maxEnemyScore = score;
+                    bestTarget = enemy;
+                }
+            }
+
+            if (bestTarget != null) {
+                rc.fireSingleShot(rc.getLocation().directionTo(bestTarget.location));
+                return true;
+            }
+        }
+
+        // no enemies nearby--try killing trees
+        TreeInfo[] trees = rc.senseNearbyTrees(-1, them);
+
+        if (trees.length == 0) {
             return false;
         }
 
-        if (!rc.canFireSingleShot()) {
-            return false;
-        }
-
-        // pick an enemy somehow
-        double maxEnemyScore = Double.NEGATIVE_INFINITY;
-        RobotInfo bestTarget = null;
-        for (RobotInfo enemy : robots) {
+        // just pick the weakest tree
+        double minHealth = Double.POSITIVE_INFINITY;
+        TreeInfo bestTree = null;
+        for (TreeInfo enemy : trees) {
             // we should also check if there is an unobstructed path to the enemy from here
             // unfortunately, that's complicated. maybe collect all nearby robots and sort by angle? that way we can
             // binary search these kinds of queries.
             if (isPathToRobotObstructed(enemy)) {
                 continue;
             }
-            double score = evaluateEnemy(enemy);
-            if (score > maxEnemyScore) {
-                maxEnemyScore = score;
-                bestTarget = enemy;
+            double health = enemy.health;
+            if (health < minHealth) {
+                minHealth = health;
+                bestTree = enemy;
             }
         }
 
-        if (bestTarget != null) {
-            rc.fireSingleShot(rc.getLocation().directionTo(bestTarget.location));
+        if (bestTree != null) {
+            rc.fireSingleShot(rc.getLocation().directionTo(bestTree.location));
             return true;
         }
         return false;
     }
 
     static boolean isPathToRobotObstructed(RobotInfo other) throws GameActionException {
+        return isPathToRobotObstructed(other.location, other.type.bodyRadius);
+    }
+    static boolean isPathToRobotObstructed(TreeInfo other) throws GameActionException {
+        return isPathToRobotObstructed(other.location, other.radius);
+    }
+    static boolean isPathToRobotObstructed(MapLocation theirLoc, float theirRadius) throws GameActionException {
         // naive, just sample some points
         // TODO: be smarter
         MapLocation loc = rc.getLocation();
-        MapLocation otherLoc = other.getLocation();
-        Direction dir = loc.directionTo(otherLoc);
-        float dist = loc.distanceTo(otherLoc) - type.bodyRadius - other.getType().bodyRadius;
+        Direction dir = loc.directionTo(theirLoc);
+        float dist = loc.distanceTo(theirLoc) - type.bodyRadius - theirRadius;
         int numSamples = Math.max((int) (3 * dist), 2);
         for (int i = 0; i < numSamples; i++) {
             float curDist = type.bodyRadius + dist * i / (numSamples - 1);

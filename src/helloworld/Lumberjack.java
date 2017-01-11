@@ -119,26 +119,67 @@ strictfp class Lumberjack extends RobotPlayer {
     }
 
     static boolean tryMeleeAttackEnemy() throws GameActionException {
-        RobotInfo[] enemies = rc.senseNearbyRobots(type.bodyRadius + GameConstants.LUMBERJACK_STRIKE_RADIUS, them);
-        RobotInfo[] allies = rc.senseNearbyRobots(type.bodyRadius + GameConstants.LUMBERJACK_STRIKE_RADIUS, us);
-
-        boolean containsArchon = false;
-        for (RobotInfo enemy : enemies) {
-            if (enemy.getType() == RobotType.ARCHON) {
-                containsArchon = true;
-                break;
-            }
-        }
-
-        if (enemies.length <= allies.length && !containsArchon) {
-            return false;
-        }
-
         if (!rc.canStrike()) {
             return false;
         }
 
-        rc.strike();
-        return true;
+        RobotInfo[] enemies = rc.senseNearbyRobots(type.bodyRadius + GameConstants.LUMBERJACK_STRIKE_RADIUS, them);
+        RobotInfo[] allies = rc.senseNearbyRobots(type.bodyRadius + GameConstants.LUMBERJACK_STRIKE_RADIUS, us);
+
+        TreeInfo[] enemyTrees = rc.senseNearbyTrees(type.bodyRadius + GameConstants.LUMBERJACK_STRIKE_RADIUS, them);
+        TreeInfo[] alliedTrees = rc.senseNearbyTrees(type.bodyRadius + GameConstants.LUMBERJACK_STRIKE_RADIUS, us);
+
+        int totalEnemies = enemies.length + enemyTrees.length;
+        int totalAllies = allies.length + alliedTrees.length;
+
+        boolean nearArchon = false;
+        for (RobotInfo enemy : enemies) {
+            if (enemy.getType() == RobotType.ARCHON) {
+                nearArchon = true;
+                break;
+            }
+        }
+
+        TreeInfo weakestEnemyTree = getWeakestTree(enemyTrees);
+
+        if (totalEnemies > totalAllies || nearArchon) {
+            // maximize damage
+            if (enemyTrees.length == 0 || (totalEnemies - totalAllies)*RobotType.LUMBERJACK.attackPower >
+                    GameConstants.LUMBERJACK_CHOP_DAMAGE) {
+                rc.strike();
+            } else {
+                // chop weakest tree
+                rc.chop(weakestEnemyTree.getID());
+            }
+            return true;
+        }
+
+        // to risky to do AOE, but any enemy trees nearby?
+        if(enemyTrees.length > 0){
+            rc.chop(weakestEnemyTree.getID());
+            return true;
+        }
+        TreeInfo[] neutralTrees = rc.senseNearbyTrees(type.bodyRadius + GameConstants.LUMBERJACK_STRIKE_RADIUS,
+                Team.NEUTRAL);
+        // any neutral trees nearby?
+        if(neutralTrees .length > 0){
+            TreeInfo weakestNeutralTree = getWeakestTree(neutralTrees);
+            rc.chop(weakestNeutralTree.getID());
+            return true;
+        }
+
+        return false;
+    }
+
+    static TreeInfo getWeakestTree(TreeInfo[] trees){
+        double minHealth = Double.POSITIVE_INFINITY;
+        TreeInfo bestTree = null;
+        for(TreeInfo tree : trees){
+            if(tree.health < minHealth){
+                minHealth = tree.health;
+                bestTree = tree;
+            }
+        }
+        return bestTree;
     }
 }
