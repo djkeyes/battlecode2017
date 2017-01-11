@@ -98,7 +98,7 @@ for i, (generated_package, param) in enumerate(flattened_benchmarks):
             
             # daniel: normally I get some warnings about L4J logger problems. If there's more errors than that, there might be a problem
             if len(result.stderr) > 210:
-                print('Encountered a long error message. is the process running correctly?')
+                print('\nEncountered a long error message. is the process running correctly?')
                 print(result.stderr)
              
             out = result.stdout
@@ -106,8 +106,10 @@ for i, (generated_package, param) in enumerate(flattened_benchmarks):
             matchStartIdx = out.find(b'Match Starting') 
             matchEndIdx = out.find(b'Match Finished') 
             if out[matchStartIdx:matchEndIdx].count(b'\n') > 4:
-                print('Encountered a long stdout. Is a robot printing messages to stdout?')
+                print('\nEncountered a long stdout. Is a robot printing messages to stdout?')
                 #print(result.stdout)
+                with open('trial_{}_{}_{}.log'.format(i, j, k), 'wb') as log:
+                    log.write(result.stdout)
             
             
             winsIdx = out.find(b'wins')
