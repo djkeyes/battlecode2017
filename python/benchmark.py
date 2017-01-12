@@ -1,5 +1,6 @@
 
 import os
+import platform
 import subprocess
 
 import numpy as np
@@ -73,7 +74,12 @@ for benchmark in benchmarks:
 
 
 # build packages once
-command = ['./gradlew', 'build']
+
+if platform.system() == 'Windows':
+    gradle_command = 'gradlew.bat'
+else:
+    gradle_command = './gradlew'
+command = [gradle_command, 'build']
 subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 # TODO: use params
@@ -92,19 +98,19 @@ for i, (generated_package, param) in enumerate(flattened_benchmarks):
             maxInt = (2**31)-1
             seedA = np.random.randint(maxInt)
             seedB = np.random.randint(maxInt)
-            command = ['./gradlew', 'fastrun', '-PteamA=' + teamA, '-PteamB=' + teamB, '-Pmaps=' + map_name,
+            command = [gradle_command, 'fastrun', '-PteamA=' + teamA, '-PteamB=' + teamB, '-Pmaps=' + map_name,
                 '-PseedA='+str(seedA), '-PseedB='+str(seedB)]
             result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             
             # daniel: normally I get some warnings about L4J logger problems. If there's more errors than that, there might be a problem
-            if len(result.stderr) > 210:
+            if len(result.stderr) > 213:
                 print('\nEncountered a long error message. is the process running correctly?')
                 print(result.stderr)
              
             out = result.stdout
             
-            matchStartIdx = out.find(b'Match Starting') 
-            matchEndIdx = out.find(b'Match Finished') 
+            matchStartIdx = out.find(b'Match Starting')
+            matchEndIdx = out.find(b'Match Finished')
             if out[matchStartIdx:matchEndIdx].count(b'\n') > 4:
                 print('\nEncountered a long stdout. Is a robot printing messages to stdout?')
                 #print(result.stdout)
