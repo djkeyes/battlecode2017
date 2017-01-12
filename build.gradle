@@ -97,6 +97,12 @@ if (!project.hasProperty("teamB")) {
 if (!project.hasProperty("maps")) {
     ext.maps = "shrine"
 }
+if (!project.hasProperty("seedA")) {
+    ext.seedA = ""
+}
+if (!project.hasProperty("seedB")) {
+    ext.seedB = ""
+}
 
 // Here we define a task. Tasks like this one, 'unpackClient', can be
 // executed in the terminal with `./gradlew unpackClient` in Unix or
@@ -170,6 +176,7 @@ task fastrun(type: JavaExec) {
             '-Dbc.server.save-file=' + 'matches/' + project.property('teamA') + '-vs-' + project.property('teamB') + '-on-' + project.property('maps') + '.bc17'
     ]
 }
+
 
 // This task prints out all available players, in the format that the `run`
 // task expects them to be given as.
