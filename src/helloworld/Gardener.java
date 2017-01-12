@@ -2,8 +2,6 @@ package helloworld;
 
 import battlecode.common.*;
 
-import java.util.Arrays;
-
 strictfp class Gardener extends RobotPlayer {
 
     static int itemsBuilt = 0;
@@ -65,11 +63,9 @@ strictfp class Gardener extends RobotPlayer {
             return;
         }
 
-        // FIXME currently, I believe the docs are wrong
-        // they claim the tree must be within the stride radius, but I think it's actually the body radius which the
-        // server uses as the threshold.
-        //TreeInfo[] nearbyTrees = rc.senseNearbyTrees(type.bodyRadius + 1.0f, us);
-        TreeInfo[] nearbyTrees = rc.senseNearbyTrees(2.0f * type.bodyRadius, us);
+        // Currently the docs claim the tree must be within 1.0f, but the code actually checks against the stride
+        // radius (which is == 1.0f). so watch out for updates to the server.
+        TreeInfo[] nearbyTrees = rc.senseNearbyTrees(type.bodyRadius + type.strideRadius, us);
         // find lowest health tree
         float lowestHealth = Float.MAX_VALUE;
         TreeInfo bestTree = null;

@@ -123,10 +123,7 @@ public strictfp class RobotPlayer {
             return;
         }
 
-        // FIXME currently, I believe the docs are wrong
-        // they claim the tree must be within the stride radius, but I think it's actually the body radius which the
-        // server uses as the threshold.
-        TreeInfo[] nearbyTrees = rc.senseNearbyTrees(2.0f * type.bodyRadius, Team.NEUTRAL);
+        TreeInfo[] nearbyTrees = rc.senseNearbyTrees(type.bodyRadius + type.strideRadius, Team.NEUTRAL);
         if (nearbyTrees.length > 0) {
             // pick randomly
             TreeInfo tree = nearbyTrees[gen.nextInt(nearbyTrees.length)];
