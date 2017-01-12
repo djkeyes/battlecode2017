@@ -11,8 +11,8 @@ src_dir = './src/'
 # benchmarks, in the format (package name, commit hash, debug params)
 # (use a singleton list if no params to try)
 benchmarks = [
-    ('helloworld', '231294dc184cc065c4ee58df4943013e18cf250f', ['']),
-    ('noop', '3ddd89a54e411c400b4f63197596ee7ffb3dc696', [''])
+    ('helloworld', '9f7e20825181e1d8fd0b3049414ffeae78a41993', ['']),
+    ('noop', '9f7e20825181e1d8fd0b3049414ffeae78a41993', [''])
 ]
 
 maps = [
