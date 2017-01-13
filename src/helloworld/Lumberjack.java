@@ -145,7 +145,7 @@ strictfp class Lumberjack extends RobotPlayer {
         if (totalEnemies > totalAllies || nearArchon) {
             // maximize damage
             if (enemyTrees.length == 0 || (totalEnemies - totalAllies)*RobotType.LUMBERJACK.attackPower >
-                    GameConstants.LUMBERJACK_CHOP_DAMAGE) {
+                    GameConstants.LUMBERJACK_CHOP_DAMAGE || weakestEnemyTree == null) {
                 rc.strike();
             } else {
                 // chop weakest tree
@@ -155,17 +155,19 @@ strictfp class Lumberjack extends RobotPlayer {
         }
 
         // to risky to do AOE, but any enemy trees nearby?
-        if(enemyTrees.length > 0){
+        if(weakestEnemyTree != null){
             rc.chop(weakestEnemyTree.getID());
             return true;
         }
         TreeInfo[] neutralTrees = rc.senseNearbyTrees(type.bodyRadius + GameConstants.LUMBERJACK_STRIKE_RADIUS,
                 Team.NEUTRAL);
         // any neutral trees nearby?
-        if(neutralTrees .length > 0){
+        if(neutralTrees.length > 0){
             TreeInfo weakestNeutralTree = getWeakestTree(neutralTrees);
-            rc.chop(weakestNeutralTree.getID());
-            return true;
+            if (weakestNeutralTree != null) {
+                rc.chop(weakestNeutralTree.getID());
+                return true;
+            }
         }
 
         return false;
@@ -175,6 +177,10 @@ strictfp class Lumberjack extends RobotPlayer {
         double minHealth = Double.POSITIVE_INFINITY;
         TreeInfo bestTree = null;
         for(TreeInfo tree : trees){
+            float dist = tree.getLocation().distanceTo(rc.getLocation());
+            if(dist > RobotType.LUMBERJACK.bodyRadius + tree.getRadius() + RobotType.LUMBERJACK.strideRadius){
+                continue;
+            }
             if(tree.health < minHealth){
                 minHealth = tree.health;
                 bestTree = tree;
