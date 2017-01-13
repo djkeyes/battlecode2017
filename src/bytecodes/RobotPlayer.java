@@ -34,6 +34,10 @@ public strictfp class RobotPlayer {
         timeAllocateObject();
         timeAllocateCollections();
         timeSimpleLambda();
+        Clock.yield();
+
+        timeInheritance();
+        timeStaticInstanceAndLocal();
     }
 
     @SuppressWarnings("unused")
@@ -321,6 +325,209 @@ public strictfp class RobotPlayer {
         x.doIt();
         after = Clock.getBytecodeNum();
         expected = 3;
+        actual = after - before;
+        assertEquals(expected, actual);
+    }
+
+    private static class EmptyClass {
+    }
+    private static class OneVarClass {
+        private int a;
+        private void assignVar(){
+            a = 123;
+        }
+    }
+    private static class TwoVarClass {
+        private int a;
+        private int b;
+    }
+    private static class InitVarClass {
+        private int a = 5;
+    }
+    private static class SimpleClass {
+        protected void foo(){}
+    }
+    private static class DerivedClass extends SimpleClass {
+    }
+    private static class DerivedClassWithOverriding extends SimpleClass {
+        @Override
+        protected void foo(){}
+    }
+
+    public static void timeInheritance() {
+        int before, after;
+        EmptyClass empty;
+        before = Clock.getBytecodeNum();
+        empty = new EmptyClass();
+        after = Clock.getBytecodeNum();
+        int expected = 9;
+        int actual = after - before;
+        assertEquals(expected, actual);
+
+        OneVarClass oneVar;
+        before = Clock.getBytecodeNum();
+        oneVar = new OneVarClass();
+        after = Clock.getBytecodeNum();
+        expected = 9;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        TwoVarClass twoVar;
+        before = Clock.getBytecodeNum();
+        twoVar = new TwoVarClass();
+        after = Clock.getBytecodeNum();
+        expected = 9;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        InitVarClass initVar;
+        before = Clock.getBytecodeNum();
+        initVar = new InitVarClass();
+        after = Clock.getBytecodeNum();
+        expected = 12;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        SimpleClass x;
+        before = Clock.getBytecodeNum();
+        x = new SimpleClass();
+        after = Clock.getBytecodeNum();
+        expected = 9;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        SimpleClass y;
+        before = Clock.getBytecodeNum();
+        y = new DerivedClass();
+        after = Clock.getBytecodeNum();
+        expected = 14;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        SimpleClass z;
+        before = Clock.getBytecodeNum();
+        z = new DerivedClassWithOverriding();
+        after = Clock.getBytecodeNum();
+        expected = 14;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        x.foo();
+        after = Clock.getBytecodeNum();
+        expected = 3;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        y.foo();
+        after = Clock.getBytecodeNum();
+        expected = 3;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        z.foo();
+        after = Clock.getBytecodeNum();
+        expected = 3;
+        actual = after - before;
+        assertEquals(expected, actual);
+    }
+
+    private static class ClassWithMethods {
+        public void noop() {}
+        public void callNoop() { noop(); }
+        public void callNoopTwice() { noop(); noop(); }
+
+        protected void protectedNoop() {}
+        private void privateNoop() {}
+        void packageNoop() {}
+    }
+
+    private static int staticVar;
+    private static void staticMethod(){}
+    public static void timeStaticInstanceAndLocal(){
+        int before, after;
+        before = Clock.getBytecodeNum();
+        staticVar = 123;
+        after = Clock.getBytecodeNum();
+        int expected = 3;
+        int actual = after - before;
+        assertEquals(expected, actual);
+
+        // huh. in this case, it's faster to call an instance method that assigns values within the instance than to
+        // directly assign values outside of the instance.
+        OneVarClass oneVar = new OneVarClass();
+        oneVar.a = 0;
+        before = Clock.getBytecodeNum();
+        oneVar.a = 456;
+        after = Clock.getBytecodeNum();
+        expected = 9;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        oneVar.assignVar();
+        after = Clock.getBytecodeNum();
+        expected = 8;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        staticMethod();
+        after = Clock.getBytecodeNum();
+        expected = 2;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        ClassWithMethods methodic = new ClassWithMethods();
+        before = Clock.getBytecodeNum();
+        methodic.noop();
+        after = Clock.getBytecodeNum();
+        expected = 3;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        methodic.callNoop();
+        after = Clock.getBytecodeNum();
+        expected = 5;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        methodic.callNoopTwice();
+        after = Clock.getBytecodeNum();
+        expected = 7;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        methodic.protectedNoop();
+        after = Clock.getBytecodeNum();
+        expected = 3;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        // only this one is more expensive. weird, eh?
+        before = Clock.getBytecodeNum();
+        methodic.privateNoop();
+        after = Clock.getBytecodeNum();
+        expected = 5;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        methodic.packageNoop();
+        after = Clock.getBytecodeNum();
+        expected = 3;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        Dummy.noop();
+        after = Clock.getBytecodeNum();
+        expected = 2;
         actual = after - before;
         assertEquals(expected, actual);
     }
