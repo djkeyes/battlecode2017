@@ -1,14 +1,7 @@
 package player3_halloworld;
 
 
-import battlecode.common.BulletInfo;
-import battlecode.common.Clock;
-import battlecode.common.Direction;
-import battlecode.common.GameActionException;
-import battlecode.common.MapLocation;
-import battlecode.common.RobotInfo;
-import battlecode.common.RobotType;
-import battlecode.common.TreeInfo;
+import battlecode.common.*;
 
 strictfp class Scout extends RobotPlayer {
 	static int strategy = 0; // Defining which state the robot is in. 
@@ -92,43 +85,57 @@ strictfp class Scout extends RobotPlayer {
     
     static boolean tryMoveOntoTree() throws GameActionException{
     	if (myTreeID != 0 && rc.canSenseTree(myTreeID)){
-    		rc.move(rc.senseTree(myTreeID).getLocation());
-    		rc.broadcast(TREEOPPONENTIDCHANNEL, myTreeID); 
-    		// TODO: Telling other scout that this tree is occupied
-    		// Now just be annoying
+			MapLocation treeLoc = rc.senseTree(myTreeID).getLocation();
+    		if(rc.canMove(treeLoc)) {
+				rc.move(rc.senseTree(myTreeID).getLocation());
+				rc.broadcast(TREEOPPONENTIDCHANNEL, myTreeID);
+				// TODO: Telling other scout that this tree is occupied
+				// Now just be annoying
+
+				return false;
+			}
     	}
-    	else { // Need new TreeID assignment
-    		//int otherTreeID = rc.readBroadcast(0);
-    	   	TreeInfo[] nearbyTrees = rc.senseNearbyTrees(10);
-    	   	rc.broadcast(TREEOPPONENTCOUNTCHANNEL, nearbyTrees.length); // depending on the number of trees, decide whether producing more scouts
-        	if (nearbyTrees.length>0){
-        		MapLocation my_loc = rc.getLocation();
-        		TreeInfo bestTree = nearbyTrees[0];
-        		float closest = 10000;
-                for (TreeInfo tree : nearbyTrees){
-                    float dis = tree.getLocation().distanceTo(my_loc);
-                    if(dis< closest && tree.getTeam()==them && !rc.isLocationOccupiedByRobot(tree.getLocation())){
-                    	// Good choice if its close, tree belongs to the opponent, and its not occupied
-                        closest = dis;
-                        bestTree = tree;
-                    }
-                }
-                if (closest != 10000){ // Found a good tree to hide
-                    Direction dirToTree = rc.getLocation().directionTo(bestTree.getLocation());
-                    rc.setIndicatorLine(bestTree.getLocation(),rc.getLocation(), 0, 0,255);
-                    myTreeID = bestTree.getID();
-                    rc.move(dirToTree);
-                }
-                else{ // No tree to hide, let's dodge
-                	tryDodge(); 
-                }
-                
-                
-        	}
+		// Need new TreeID assignment
+		//int otherTreeID = rc.readBroadcast(0);
+		TreeInfo[] nearbyTrees = rc.senseNearbyTrees(10);
+		rc.broadcast(TREEOPPONENTCOUNTCHANNEL, nearbyTrees.length); // depending on the number of trees, decide whether producing more scouts
+		if (nearbyTrees.length>0){
+			MapLocation my_loc = rc.getLocation();
+			TreeInfo bestTree = nearbyTrees[0];
+			float closest = 10000;
+			for (TreeInfo tree : nearbyTrees){
+				float dis = tree.getLocation().distanceTo(my_loc);
+				MapLocation closestPointToCenter;
+				Direction dirToTree = my_loc.directionTo(tree.getLocation());
+				// if the center of the tree is outside the sensor range, at least try to view the edge
+				if (dis < type.sensorRadius){
+					closestPointToCenter = tree.getLocation();
+				} else {
+					// due to finite precision of floats, we need to clip this slightly
+					float rangeExclusive = type.sensorRadius - 0.0001f;
+					closestPointToCenter = my_loc.add(dirToTree, rangeExclusive);
+				}
+				if(dis< closest && tree.getTeam()==them && !rc.isLocationOccupiedByRobot(closestPointToCenter) && rc
+						.canMove(dirToTree)){
+					// Good choice if its close, tree belongs to the opponent, and its not occupied
+					closest = dis;
+					bestTree = tree;
+				}
+			}
+			if (closest != 10000){ // Found a good tree to hide
+				Direction dirToTree = rc.getLocation().directionTo(bestTree.getLocation());
+				rc.setIndicatorLine(bestTree.getLocation(),rc.getLocation(), 0, 0,255);
+				myTreeID = bestTree.getID();
+				rc.move(dirToTree);
+			}
+			else{ // No tree to hide, let's dodge
+				tryDodge();
+			}
+
+
+		}
         	
-            return true;
-    	}
-    	return false;
+		return true;
     }
 
     
