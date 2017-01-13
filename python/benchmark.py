@@ -5,7 +5,7 @@ import subprocess
 
 import numpy as np
 
-package_to_test = 'helloworld'
+package_to_test = 'player3_halloworld'
 params_to_test = ['']
 
 src_dir = './src/'
@@ -17,18 +17,19 @@ benchmarks = [
 ]
 
 maps = [
-    'MOBA',
     'Barrier',
     'DenseForest',
     'Enclosure',
     'Hurdle',
     'SparseForest',
     'shrine',
+    'MagicWood',
+    'LineOfFire',
 ]
 
 benchmark_prefix = 'benchmark'
 
-runs_per_matchup = 10 # 100 or so would be better
+runs_per_matchup = 100 # 100 or so would be better
 
 ###########################################
 print('performing benchmarks for package \'{}\'...'.format(package_to_test))
