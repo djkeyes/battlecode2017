@@ -24,12 +24,15 @@ public strictfp class RobotPlayer {
             try {
                 run();
             } catch (Exception ex) {
-                // are there working "debug_" methods this year?
-                ex.printStackTrace();
+                debug_printStackTrace(ex);
                 // end the current turn before trying to restart
                 Clock.yield();
             }
         }
+    }
+
+    static void debug_printStackTrace(Exception ex){
+        ex.printStackTrace();
     }
 
     static void init(RobotController rc) {
