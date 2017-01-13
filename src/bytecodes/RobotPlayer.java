@@ -5,15 +5,16 @@ import battlecode.common.*;
 import java.util.*;
 
 import static bytecodes.Assert.assertEquals;
+import static bytecodes.Assert.assertTrue;
 
 /**
  * Daniel:
  * It might be nice to have some kind of automated test / generator for this information. I'm not sure how to inject
  * the code profiler into junit tests or how to mock the various battlecode classes, so instead this is a
  * full-fledged player.
- *
+ * <p>
  * You can run it with, for example:
- *
+ * <p>
  * gradle run -PteamA=bytecodes -PteamB=noop -Pmaps=shrine
  */
 public strictfp class RobotPlayer {
@@ -38,6 +39,10 @@ public strictfp class RobotPlayer {
 
         timeInheritance();
         timeStaticInstanceAndLocal();
+        timeDebugMethods();
+        Clock.yield();
+
+        timeUpdateCollections();
     }
 
     @SuppressWarnings("unused")
@@ -92,6 +97,13 @@ public strictfp class RobotPlayer {
         after = Clock.getBytecodeNum();
         int expected = 3;
         int actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        int y = 7;
+        after = Clock.getBytecodeNum();
+        expected = 3;
+        actual = after - before;
         assertEquals(expected, actual);
     }
 
@@ -150,7 +162,7 @@ public strictfp class RobotPlayer {
 
         // loop backwards
         before = Clock.getBytecodeNum();
-        for (int i = 100; i >=0; i--) ;
+        for (int i = 100; i >= 0; i--) ;
         after = Clock.getBytecodeNum();
         expected = 409;
         actual = after - before;
@@ -158,7 +170,7 @@ public strictfp class RobotPlayer {
 
         // loop backwards, change operand order
         before = Clock.getBytecodeNum();
-        for (int i = 100; --i >=0;) ;
+        for (int i = 100; --i >= 0; ) ;
         after = Clock.getBytecodeNum();
         expected = 406;
         actual = after - before;
@@ -240,6 +252,7 @@ public strictfp class RobotPlayer {
         int actual = after - before;
         assertEquals(expected, actual);
     }
+
     public static void timeAllocateCollections() {
         int before, after;
         Collection x;
@@ -311,11 +324,13 @@ public strictfp class RobotPlayer {
     private interface SimpleLambda {
         void doIt();
     }
+
     public static void timeSimpleLambda() {
         int before, after;
         SimpleLambda x;
         before = Clock.getBytecodeNum();
-        x = () -> {};
+        x = () -> {
+        };
         after = Clock.getBytecodeNum();
         int expected = 2;
         int actual = after - before;
@@ -331,27 +346,48 @@ public strictfp class RobotPlayer {
 
     private static class EmptyClass {
     }
+
     private static class OneVarClass {
         private int a;
-        private void assignVar(){
+
+        private void assignVar() {
             a = 123;
         }
     }
+
     private static class TwoVarClass {
         private int a;
         private int b;
     }
+
     private static class InitVarClass {
         private int a = 5;
     }
+
     private static class SimpleClass {
-        protected void foo(){}
+        protected void foo() {
+        }
     }
+
     private static class DerivedClass extends SimpleClass {
     }
+
     private static class DerivedClassWithOverriding extends SimpleClass {
         @Override
-        protected void foo(){}
+        protected void foo() {
+        }
+    }
+
+    private interface SimpleInterface {
+    }
+
+    private static class SimpleImpl implements SimpleInterface {
+    }
+
+    private static class SimpleLambdaImpl implements SimpleLambda {
+        @Override
+        public void doIt() {
+        }
     }
 
     public static void timeInheritance() {
@@ -412,6 +448,14 @@ public strictfp class RobotPlayer {
         actual = after - before;
         assertEquals(expected, actual);
 
+        DerivedClass w;
+        before = Clock.getBytecodeNum();
+        w = new DerivedClass();
+        after = Clock.getBytecodeNum();
+        expected = 14;
+        actual = after - before;
+        assertEquals(expected, actual);
+
         before = Clock.getBytecodeNum();
         x.foo();
         after = Clock.getBytecodeNum();
@@ -432,21 +476,76 @@ public strictfp class RobotPlayer {
         expected = 3;
         actual = after - before;
         assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        w.foo();
+        after = Clock.getBytecodeNum();
+        expected = 3;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        SimpleInterface a;
+        before = Clock.getBytecodeNum();
+        a = new SimpleImpl();
+        after = Clock.getBytecodeNum();
+        expected = 9;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        // anonymous class
+        before = Clock.getBytecodeNum();
+        a = new SimpleImpl() {
+        };
+        after = Clock.getBytecodeNum();
+        expected = 11;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        SimpleLambda b;
+        before = Clock.getBytecodeNum();
+        b = new SimpleLambdaImpl();
+        after = Clock.getBytecodeNum();
+        expected = 9;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        b.doIt();
+        after = Clock.getBytecodeNum();
+        expected = 3;
+        actual = after - before;
+        assertEquals(expected, actual);
     }
 
     private static class ClassWithMethods {
-        public void noop() {}
-        public void callNoop() { noop(); }
-        public void callNoopTwice() { noop(); noop(); }
+        public void noop() {
+        }
 
-        protected void protectedNoop() {}
-        private void privateNoop() {}
-        void packageNoop() {}
+        public void callNoop() {
+            noop();
+        }
+
+        public void callNoopTwice() {
+            noop();
+            noop();
+        }
+
+        protected void protectedNoop() {
+        }
+
+        private void privateNoop() {
+        }
+
+        void packageNoop() {
+        }
     }
 
     private static int staticVar;
-    private static void staticMethod(){}
-    public static void timeStaticInstanceAndLocal(){
+
+    private static void staticMethod() {
+    }
+
+    public static void timeStaticInstanceAndLocal() {
         int before, after;
         before = Clock.getBytecodeNum();
         staticVar = 123;
@@ -531,4 +630,199 @@ public strictfp class RobotPlayer {
         actual = after - before;
         assertEquals(expected, actual);
     }
+
+    private static void debug_noop() {
+    }
+
+    private static void debug_oneOp() {
+        int x = 1337;
+    }
+
+    private static int sideEffect;
+
+    private static void debug_withSideEffect() {
+        sideEffect = 345;
+    }
+
+    private static void debug_withOneParam(int x) {
+    }
+
+    private static void debug_withTwoParams(int x, int y) {
+    }
+
+    public static void timeDebugMethods() {
+        // result: debug methods always cost (1 + numParams), whether they are enabled or disabled.
+        // (you can disable debug methods with the -Dbc.engine.debug-methods arg in gradle.build)
+
+        int before, after;
+        before = Clock.getBytecodeNum();
+        debug_noop();
+        after = Clock.getBytecodeNum();
+        int expected = 1;
+        int actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        debug_oneOp();
+        after = Clock.getBytecodeNum();
+        expected = 1;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        sideEffect = -1;
+        before = Clock.getBytecodeNum();
+        debug_withSideEffect();
+        after = Clock.getBytecodeNum();
+        expected = 1;
+        actual = after - before;
+        assertEquals(expected, actual);
+        assertEquals(345, sideEffect);
+
+        int x = 0, y = 0;
+        before = Clock.getBytecodeNum();
+        debug_withOneParam(x);
+        after = Clock.getBytecodeNum();
+        expected = 2;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        debug_withTwoParams(x, y);
+        after = Clock.getBytecodeNum();
+        expected = 3;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        debug_withTwoParams(x, x);
+        after = Clock.getBytecodeNum();
+        expected = 3;
+        actual = after - before;
+        assertEquals(expected, actual);
+    }
+
+    public static void timeUpdateCollections() {
+        int before, after, expected, actual;
+
+        ArrayList<Integer> arrayList;
+        LinkedList<Integer> linkedList;
+        HashSet<Integer> hashSet;
+
+        // this is cheaper than before. Does ArrayList do some static initialization that costs 5 bytecodes?
+        before = Clock.getBytecodeNum();
+        arrayList = new ArrayList<>();
+        after = Clock.getBytecodeNum();
+        expected = 16;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        // this is significantly more expensive. weird.
+        before = Clock.getBytecodeNum();
+        arrayList = new ArrayList<>(10);
+        after = Clock.getBytecodeNum();
+        expected = 30;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        arrayList = new ArrayList<>(20);
+        after = Clock.getBytecodeNum();
+        expected = 40;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        arrayList = new ArrayList<>(30);
+        after = Clock.getBytecodeNum();
+        expected = 50;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        // holy shit, 42? geez that's expensive!
+        for (int i = 0; i < 10; i++) {
+            before = Clock.getBytecodeNum();
+            arrayList.add(i);
+            after = Clock.getBytecodeNum();
+            expected = 42;
+            actual = after - before;
+            assertEquals(expected, actual);
+        }
+
+        linkedList = new LinkedList<>();
+        for (int i = 0; i < 10; i++) {
+            before = Clock.getBytecodeNum();
+            linkedList.add(i);
+            after = Clock.getBytecodeNum();
+            if (i == 0) {
+                expected = 50;
+            } else {
+                expected = 49;
+            }
+            actual = after - before;
+            assertEquals(expected, actual);
+        }
+
+        // by default, hash set has size 16 and load factor 0.75, so we can store 12 elements before resizing
+        hashSet = new HashSet<>();
+        for (int i = 0; i < 12; i++) {
+            before = Clock.getBytecodeNum();
+            hashSet.add(i);
+            after = Clock.getBytecodeNum();
+            actual = after - before;
+            if (i == 0) {
+                expected = 155;
+            } else {
+                expected = 103;
+            }
+            assertEquals(expected, actual);
+        }
+        // add duplicates
+        for (int i = 0; i < 12; i++) {
+            before = Clock.getBytecodeNum();
+            hashSet.add(i);
+            after = Clock.getBytecodeNum();
+            expected = 79;
+            actual = after - before;
+            assertEquals(expected, actual);
+        }
+        before = Clock.getBytecodeNum();
+        hashSet.add(12);
+        after = Clock.getBytecodeNum();
+        expected = 587;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        // simple example of an arraylist that's cheap to mantain
+        before = Clock.getBytecodeNum();
+        int capacity = 30;
+        int size = 0;
+        int[] simpleArrayList = new int[capacity];
+        after = Clock.getBytecodeNum();
+        expected = 37;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        for (int i = 0; i < 10; i++) {
+            before = Clock.getBytecodeNum();
+            simpleArrayList[size] = i;
+            size++;
+            after = Clock.getBytecodeNum();
+            expected = 6;
+            actual = after - before;
+            assertEquals(expected, actual);
+        }
+        // in this scenario, the cost is the same when using a one-liner
+        for (int i = 0; i < 10; i++) {
+            before = Clock.getBytecodeNum();
+            simpleArrayList[size++] = i;
+            after = Clock.getBytecodeNum();
+            expected = 6;
+            actual = after - before;
+            assertEquals(expected, actual);
+        }
+
+        // todo:
+        // hash map
+    }
+
 }
