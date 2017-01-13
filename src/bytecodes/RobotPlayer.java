@@ -19,7 +19,7 @@ import static bytecodes.Assert.assertTrue;
  */
 public strictfp class RobotPlayer {
 
-    public static void runTests() {
+    public static void runTests(RobotController rc) {
         testSimpleAssertion();
         timeNoop();
         timeDeclarePrimitive();
@@ -43,6 +43,7 @@ public strictfp class RobotPlayer {
         Clock.yield();
 
         timeUpdateCollections();
+        timeRobotControllerMethods(rc);
     }
 
     @SuppressWarnings("unused")
@@ -52,7 +53,7 @@ public strictfp class RobotPlayer {
         System.out.println("bytecodes at start of tests: " + bytecodesAtStart);
 
         try {
-            runTests();
+            runTests(rc);
 
             System.out.println("All tests passed!");
         } catch (AssertionError e1) {
@@ -825,4 +826,70 @@ public strictfp class RobotPlayer {
         // hash map
     }
 
+
+    public static void timeRobotControllerMethods(RobotController rc) {
+        // this doesn't test everything, just a few interesting ones.
+        // result: so the official bytecode cost is a bit of a lie. It actually costs:
+        // 3 + numParams + officialBytecodeCost
+        // Which means, for many methods, it's a good idea to store the result in a local variable instead of calling
+        // it again.
+        int before, after;
+        int expected, actual;
+
+        before = Clock.getBytecodeNum();
+        rc.getID();
+        after = Clock.getBytecodeNum();
+        expected = 4;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        rc.getLocation();
+        after = Clock.getBytecodeNum();
+        expected = 4;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        MapLocation loc = rc.getLocation();
+        after = Clock.getBytecodeNum();
+        expected = 4;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        rc.canSenseRadius(4);
+        after = Clock.getBytecodeNum();
+        expected = 4;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        rc.getControlBits();
+        after = Clock.getBytecodeNum();
+        expected = 3;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        rc.senseNearbyRobots();
+        after = Clock.getBytecodeNum();
+        expected = 103;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        rc.senseNearbyBullets();
+        after = Clock.getBytecodeNum();
+        expected = 53;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        rc.canMove(Direction.getNorth());
+        after = Clock.getBytecodeNum();
+        expected = 14;
+        actual = after - before;
+        assertEquals(expected, actual);
+    }
 }
