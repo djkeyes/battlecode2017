@@ -147,11 +147,11 @@ public strictfp class RobotPlayer {
     static boolean tryAttackEnemy() throws GameActionException {
         RobotInfo[] robots = rc.senseNearbyRobots(-1, them);
 
-        if (robots.length > 0) {
+        if (!rc.canFireSingleShot()) {
+            return false;
+        }
 
-            if (!rc.canFireSingleShot()) {
-                return false;
-            }
+        if (robots.length > 0) {
 
             // pick an enemy somehow
             double maxEnemyScore = Double.NEGATIVE_INFINITY;
