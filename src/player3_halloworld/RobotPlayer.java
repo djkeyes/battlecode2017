@@ -116,12 +116,19 @@ public strictfp class RobotPlayer {
         }
 
         TreeInfo[] nearbyTrees = rc.senseNearbyTrees(type.bodyRadius + type.strideRadius, Team.NEUTRAL);
-        if (nearbyTrees.length > 0) {
-            // pick randomly
-            TreeInfo tree = nearbyTrees[gen.nextInt(nearbyTrees.length)];
-            rc.shake(tree.getID());
+        int maxBullets = 0;
+        TreeInfo bestTree = null;
+        for (TreeInfo tree : nearbyTrees){
+            int curBullets = tree.getContainedBullets();
+            if(curBullets > maxBullets){
+                bestTree = tree;
+                maxBullets= curBullets;
+            }
         }
-
+        if (bestTree != null) {
+            // pick randomly
+            rc.shake(bestTree.getID());
+        }
     }
 
     static void tryTrivialWin() throws GameActionException {
