@@ -117,6 +117,38 @@ public strictfp class RobotPlayer {
         // A move never happened, so return false.
         return false;
     }
+    static boolean tryMove(Direction dir, float dist, float degreeOffset, int checksPerSide) throws
+            GameActionException {
+        // daniel: wow, this sucks. rewrite it.
+
+        // First, try intended direction
+        if (rc.canMove(dir, dist)) {
+            rc.move(dir, dist);
+            return true;
+        }
+
+        // Now try a bunch of similar angles
+        boolean moved = false;
+        int currentCheck = 1;
+
+        while (currentCheck <= checksPerSide) {
+            // Try the offset of the left side
+            if (rc.canMove(dir.rotateLeftDegrees(degreeOffset * currentCheck), dist)) {
+                rc.move(dir.rotateLeftDegrees(degreeOffset * currentCheck), dist);
+                return true;
+            }
+            // Try the offset on the right side
+            if (rc.canMove(dir.rotateRightDegrees(degreeOffset * currentCheck), dist)) {
+                rc.move(dir.rotateRightDegrees(degreeOffset * currentCheck), dist);
+                return true;
+            }
+            // No move performed, try slightly further
+            currentCheck++;
+        }
+
+        // A move never happened, so return false.
+        return false;
+    }
 
     static Direction randomDirection() {
         return new Direction((float) gen.nextDouble() * 2 * (float) Math.PI);

@@ -25,9 +25,12 @@ strictfp class Gardener extends RobotPlayer {
 
     static int earliestRushTurn;
 
+    static int turnsAlive;
+    static boolean isStationary = false;
+
     static void run() throws GameActionException {
-        initializeTreePattern();
         computeEarliestRush();
+        turnsAlive = 0;
 
         while (true) {
             updateNearby();
@@ -36,17 +39,24 @@ strictfp class Gardener extends RobotPlayer {
             // TODO: unless we're the very first gardener, maybe we should move away from nearby units first.
             // or at least from nearby gardeners
             // or maybe we should have a messaging flag. if the map is very small/crowded, don't bother spreading.
-
-            // attempt to build a tree or unit
-            if (rc.getBuildCooldownTurns() == 0) {
-                determineWhatToBuild();
-                if (shouldBuildTree) {
-                    buildTree();
-                } else if (typeToBuild != null) {
-                    tryBuildRobot();
-                }
+            if (!isStationary && turnsAlive <= 10 && rc.getRoundNum() > 5 && needToMoveAwayFromPack()) {
+                moveAwayFromPack();
             } else {
-                tryReturnToCenter();
+                if (!isStationary) {
+                    isStationary = true;
+                    initializeTreePattern();
+                }
+                // attempt to build a tree or unit
+                if (rc.getBuildCooldownTurns() == 0) {
+                    determineWhatToBuild();
+                    if (shouldBuildTree) {
+                        buildTree();
+                    } else if (typeToBuild != null) {
+                        tryBuildRobot();
+                    }
+                } else {
+                    tryReturnToCenter();
+                }
             }
 
             // maybe if we haven't built any trees at all, we should dodge bullets?
@@ -64,6 +74,7 @@ strictfp class Gardener extends RobotPlayer {
             // if we build a tree, we could also send an update immediately. however, trees take a long time to grow, so
             // the information might not be very actionable.
 
+            turnsAlive++;
             Clock.yield();
         }
     }
@@ -230,6 +241,11 @@ strictfp class Gardener extends RobotPlayer {
     }
 
     static void examineAdjacentTrees() throws GameActionException {
+        if (!isStationary) {
+            adjacentTreeIncome = 0.0f;
+            isMaxed = 0;
+            return;
+        }
         int numTrees = 0;
         int numTreesPossible = 0;
         float totalTreeHealth = 0.0f;
@@ -315,5 +331,50 @@ strictfp class Gardener extends RobotPlayer {
         float turnsToWin = (vpLeft * GameConstants.BULLET_EXCHANGE_RATE - rc.getTeamBullets()) / bulletsPerTurn;
 
         return turnsForTreeToBreakEven > turnsToWin;
+    }
+
+    static boolean needToMoveAwayFromPack() {
+        // check if any gardeners are less than 2*bodyRadius + 4*bulletTreeRadius away
+        // in fact, we actually need more, but ignore that for now
+        for (RobotInfo ally : alliesInSignt) {
+            if (ally.type == RobotType.GARDENER) {
+                return true;
+            }
+
+            // because these are in sorted order, we can terminate early
+            if (ally.location.distanceTo(rc.getLocation())
+                    > 2 * RobotType.GARDENER.bodyRadius + 4 * GameConstants.BULLET_TREE_RADIUS + 0.5f) {
+                break;
+            }
+        }
+
+        // TODO(daniel): check for map edge
+        // I'm not sure if moving away from the edge will actually help though, since that indicates that things are
+        // pretty crowded already.
+        return false;
+    }
+
+    static void moveAwayFromPack() throws GameActionException {
+        // apply a "force"
+        float K = 30.0f;
+        float fx = 0f;
+        float fy = 0f;
+        for (RobotInfo ally : alliesInSignt) {
+            if (ally.type == RobotType.GARDENER) {
+                float distSq = ally.location.distanceSquaredTo(rc.getLocation());
+                Direction dir = ally.location.directionTo(rc.getLocation());
+                fx += dir.getDeltaX(K) / distSq;
+                fy += dir.getDeltaY(K) / distSq;
+            }
+        }
+
+        float mag = (float) StrictMath.sqrt(fx * fx + fy * fy);
+        Direction dir = new Direction(fx, fy);
+
+        if (mag > type.strideRadius) {
+            mag = type.strideRadius;
+        }
+
+        tryMove(dir, mag, 10, 10);
     }
 }
