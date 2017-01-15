@@ -17,14 +17,18 @@ strictfp class Gardener extends RobotPlayer {
     static MapLocation[] plantingPositions = new MapLocation[NUM_TREES_PER_GARDENER];
     static Direction[] plantingDirs = new Direction[NUM_TREES_PER_GARDENER];
     static int[] treeIds = new int[NUM_TREES_PER_GARDENER];
+    static int[] treeConstructionTurn = new int[NUM_TREES_PER_GARDENER];
     static int nextTreeIdx;
+
+    static int isMaxed = 0;
+    static float adjacentTreeIncome = 0f;
 
     static void run() throws GameActionException {
         initializeTreePattern();
 
         while (true) {
             updateNearby();
-            Messaging.getUnitCounts();
+            Messaging.tryGetUnitCounts();
 
             // TODO: unless we're the very first gardener, maybe we should move away from nearby units first.
             // or at least from nearby gardeners
@@ -50,8 +54,12 @@ strictfp class Gardener extends RobotPlayer {
 
             donateExcessVictoryPoints();
 
-            reportAdjacentTrees();
-            Messaging.tryReportUnitCount();
+            if (Messaging.shouldSendHeartbeat()) {
+                examineAdjacentTrees();
+                Messaging.sendHeartbeatSignal(0, 1, isMaxed, adjacentTreeIncome);
+            }
+            // if we build a tree, we could also send an update immediately. however, trees take a long time to grow, so
+            // the information might not be very actionable.
 
             Clock.yield();
         }
@@ -109,8 +117,10 @@ strictfp class Gardener extends RobotPlayer {
         // for now, use a static tree pattern. in the future, it might help to dynamically fill gaps
         for (int i = 0; i < NUM_TREES_PER_GARDENER; i++) {
             if (treeIds[i] == -1) {
-                MapLocation treePosition = plantingPositions[i].add(plantingDirs[i], type.bodyRadius
-                        + GameConstants.GENERAL_SPAWN_OFFSET + GameConstants.BULLET_TREE_RADIUS);
+                if (!rc.canMove(plantingPositions[i])) {
+                    continue;
+                }
+                MapLocation treePosition = computeTreePosition(i);
                 if (rc.onTheMap(treePosition, GameConstants.BULLET_TREE_RADIUS)
                         && !rc.isCircleOccupied(treePosition, GameConstants.BULLET_TREE_RADIUS)) {
                     nextTreeIdx = i;
@@ -121,11 +131,17 @@ strictfp class Gardener extends RobotPlayer {
         return false;
     }
 
+    static MapLocation computeTreePosition(int treeIdx) {
+        return plantingPositions[treeIdx].add(plantingDirs[treeIdx], type.bodyRadius
+                + GameConstants.GENERAL_SPAWN_OFFSET + GameConstants.BULLET_TREE_RADIUS);
+    }
+
     static void buildTree() throws GameActionException {
         rc.move(plantingPositions[nextTreeIdx]);
         rc.plantTree(plantingDirs[nextTreeIdx]);
-        TreeInfo newTree = rc.senseTreeAtLocation(plantingPositions[nextTreeIdx].add(plantingDirs[nextTreeIdx]));
+        TreeInfo newTree = rc.senseTreeAtLocation(computeTreePosition(nextTreeIdx));
         treeIds[nextTreeIdx] = newTree.getID();
+        treeConstructionTurn[nextTreeIdx] = rc.getRoundNum();
     }
 
     static void buildRobot() {
@@ -133,13 +149,57 @@ strictfp class Gardener extends RobotPlayer {
     }
 
     static void tryReturnToCenter() throws GameActionException {
-        if (rc.getLocation() != centerPosition) {
+        if (rc.getLocation() != centerPosition && rc.canMove(centerPosition)) {
             rc.move(centerPosition);
         }
     }
 
-    static void reportAdjacentTrees() {
-        // TODO
+    static void examineAdjacentTrees() throws GameActionException {
+        int numTrees = 0;
+        int numTreesPossible = 0;
+        float totalTreeHealth = 0.0f;
+        for (int i = 0; i < NUM_TREES_PER_GARDENER; i++) {
+            if (treeIds[i] != -1) {
+                // check if tree is still alive
+                if (rc.canSenseTree(treeIds[i])) {
+                    TreeInfo tree = rc.senseTree(treeIds[i]);
+                    // if it was built recently, give an amortized estimate
+                    int completionTurn = treeConstructionTurn[i] + 80;
+                    if (completionTurn > rc.getRoundNum()) {
+                        if (completionTurn < rc.getRoundNum() + Messaging.TURNS_BETWEEN_COUNTS) {
+                            float amortizedHealth = GameConstants.BULLET_TREE_MAX_HEALTH
+                                    * (float) (completionTurn - rc.getRoundNum())
+                                    / Messaging.TURNS_BETWEEN_COUNTS;
+                            totalTreeHealth += amortizedHealth;
+                        }
+                    } else {
+                        totalTreeHealth += tree.health;
+                    }
+                    numTrees++;
+                    numTreesPossible++;
+                } else {
+                    treeIds[i] = -1;
+                }
+            }
+
+            if (treeIds[i] == -1) {
+                // check if it's even possible to build here
+                MapLocation treePosition = computeTreePosition(i);
+                if (rc.onTheMap(treePosition, GameConstants.BULLET_TREE_RADIUS)
+                        && !rc.isCircleOccupied(treePosition, GameConstants.BULLET_TREE_RADIUS)) {
+                    numTreesPossible++;
+                }
+            }
+
+        }
+        adjacentTreeIncome = GameConstants.BULLET_TREE_BULLET_PRODUCTION_RATE * totalTreeHealth;
+
+        // 1-tree leeway
+        if (numTrees >= numTreesPossible - 1) {
+            isMaxed = 1;
+        } else {
+            isMaxed = 0;
+        }
     }
 
     static void tryWateringNearby() throws GameActionException {
