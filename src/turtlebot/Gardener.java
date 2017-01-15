@@ -113,6 +113,11 @@ strictfp class Gardener extends RobotPlayer {
         if (rc.getTeamBullets() < GameConstants.BULLET_TREE_COST) {
             return false;
         }
+
+        if (moreEfficientToNotBuildTree()) {
+            return false;
+        }
+
         // check if there's space for another tree
         // for now, use a static tree pattern. in the future, it might help to dynamically fill gaps
         for (int i = 0; i < NUM_TREES_PER_GARDENER; i++) {
@@ -218,5 +223,26 @@ strictfp class Gardener extends RobotPlayer {
         if (bestTree != null) {
             rc.water(bestTree.getID());
         }
+    }
+
+    static boolean moreEfficientToNotBuildTree(){
+        if (Messaging.totalTreeIncome <= 0.0001f) {
+            return false;
+        }
+
+        // if we're close to winning, it might be more efficient to not build anything, since trees take a while to
+        // mature.
+        // While it's difficult to estimate the payoff of gardeners and military, trees are easy with optimistic
+        // assumptions about tree health).
+        // ...for some reason, turns to grow and bullet tree max income aren't game constants...
+        float turnsForTreeToBreakEven = 80f + GameConstants.BULLET_TREE_COST/1f;
+
+        int vpLeft = GameConstants.VICTORY_POINTS_TO_WIN - rc.getTeamVictoryPoints();
+        float defaultIncome = StrictMath.max(0f, GameConstants.ARCHON_BULLET_INCOME
+                - GameConstants.BULLET_INCOME_UNIT_PENALTY * StrictMath.max(100f, rc.getTeamBullets()));
+        float bulletsPerTurn = Messaging.totalTreeIncome + defaultIncome;
+        float turnsToWin = (vpLeft*GameConstants.BULLET_EXCHANGE_RATE - rc.getTeamBullets())/bulletsPerTurn;
+
+        return turnsForTreeToBreakEven > turnsToWin;
     }
 }
