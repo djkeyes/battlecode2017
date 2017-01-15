@@ -1,9 +1,6 @@
 package turtlebot;
 
-import battlecode.common.Clock;
-import battlecode.common.Direction;
-import battlecode.common.GameActionException;
-import battlecode.common.GameConstants;
+import battlecode.common.*;
 
 public strictfp class Archon extends RobotPlayer {
 
@@ -51,9 +48,9 @@ public strictfp class Archon extends RobotPlayer {
             return false;
         }
 
-        // TODO: if there's no military nearby, gardeners will try to build defenses
-        // so if there's already a gardener and no military, don't build more gardeners
-        // might need to set a messaging flag for this
+        if(waitingForUndefendedGardener()){
+            return false;
+        }
 
         // trees are cheaper than gardeners, so we could just ignore this, but sometimes we'll end up with 2
         // gardeners at the beginning
@@ -75,6 +72,40 @@ public strictfp class Archon extends RobotPlayer {
             }
         }
         return false;
+    }
+
+    static int lastTurnWaitingForDefence;
+    static int turnsSpentWaitingForDefence;
+
+    static boolean waitingForUndefendedGardener() {
+        // if there's no military nearby, gardeners will try to build defenses
+        // so if there's already a gardener and no military, don't build more gardeners
+        // might need to set a messaging flag for this
+        boolean isGardenerNearby = false;
+        boolean isFighterNearby = false;
+        for(RobotInfo ally : alliesInSignt){
+            if(ally.type == RobotType.GARDENER){
+                isGardenerNearby = true;
+            } else if(ally.type.canAttack()){
+                isFighterNearby = true;
+            }
+        }
+
+        boolean shouldWait = isGardenerNearby && !isFighterNearby;
+        if(shouldWait && rc.getTeamBullets() >= 100f){
+            if(lastTurnWaitingForDefence != rc.getRoundNum()-1){
+                turnsSpentWaitingForDefence = 0;
+            }
+            lastTurnWaitingForDefence = rc.getRoundNum();
+            turnsSpentWaitingForDefence++;
+
+            // the new gardener hasn't built anything. maybe he's stuck/obstructed/throwing exceptions?
+            if(turnsSpentWaitingForDefence >= 5){
+                turnsSpentWaitingForDefence = 0;
+                return false;
+            }
+        }
+        return shouldWait;
     }
 
     static boolean maxedOutOnTrees() {
