@@ -265,6 +265,9 @@ public strictfp class RobotPlayer {
         // target each one in order
         int idx = (rc.getRoundNum() / 300) % archonLocs.length;
         dirToArchons = rc.getLocation().directionTo(archonLocs[idx]);
+        if(dirToArchons == null){
+            return false;
+        }
         return tryMove(dirToArchons, 45, 20);
     }
 
