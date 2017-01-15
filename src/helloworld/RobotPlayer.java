@@ -131,9 +131,6 @@ public strictfp class RobotPlayer {
         TreeInfo bestTree = null;
         for (TreeInfo tree : nearbyTrees) {
             int curBullets = tree.getContainedBullets();
-            if (curBullets > 0) {
-                System.out.println(curBullets);
-            }
             if (curBullets > maxBullets) {
                 bestTree = tree;
                 maxBullets = curBullets;
