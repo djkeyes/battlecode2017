@@ -159,7 +159,8 @@ strictfp class Gardener extends RobotPlayer {
 
         // exactly 0 nearby. check if we could have been rushed
         // TODO: even if this is true, we might be low on money. check our income rate and compute when to start saving
-        return rc.getRoundNum() > earliestRushTurn;
+        // building anything increases cooldown by 10
+        return rc.getRoundNum() + 10 > earliestRushTurn;
     }
 
     static boolean canAddNewTree() throws GameActionException {

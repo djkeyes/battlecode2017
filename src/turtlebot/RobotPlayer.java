@@ -185,6 +185,10 @@ public strictfp class RobotPlayer {
     }
 
     static void donateExcessVictoryPoints() throws GameActionException {
+        if(rc.getRoundNum() < 20){
+            return;
+        }
+
         float bullets = rc.getTeamBullets();
         int leftToWin = GameConstants.VICTORY_POINTS_TO_WIN - rc.getTeamVictoryPoints();
         if (bullets > leftToWin * GameConstants.BULLET_EXCHANGE_RATE) {
