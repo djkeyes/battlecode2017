@@ -28,7 +28,7 @@ strictfp class Gardener extends RobotPlayer {
         	}
             tryPlantInRing();
             
-            double num = Math.random();
+            double num = gen.nextDouble();
             if (num < 0.2 ) {
             	desiredType = RobotType.SCOUT;
             	tryBuildOrPlant(desiredType, buildTree);

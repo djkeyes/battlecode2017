@@ -47,7 +47,7 @@ strictfp class Scout extends RobotPlayer {
     static void tryHarassGardener() throws GameActionException {
     	if (myOpponentID != 0 && rc.canSenseRobot(myOpponentID)){
     		Direction dir = new Direction(rc.getLocation(),rc.senseRobot(myOpponentID).getLocation());
-    		if(rc.canFireSingleShot() && Math.random()< 0.8){ 
+    		if(rc.canFireSingleShot() && gen.nextDouble()< 0.8){
     			// Fire shot towards the gardener, sometimes not to move without being shot
     			rc.fireSingleShot(dir);
     		}
@@ -160,10 +160,10 @@ strictfp class Scout extends RobotPlayer {
     		// It merely decides in which direction along the lines
     		if (bulletincoming.getDir().degreesBetween(bulletandme) > 0){
     			// to determine which direction to hide
-    			bulletandme.rotateRightDegrees((float) (Math.PI/2.0));
+    			bulletandme.rotateRightDegrees((float) (StrictMath.PI/2.0));
     		}
     		else{
-    			bulletandme.rotateLeftDegrees((float) (Math.PI/2.0));
+    			bulletandme.rotateLeftDegrees((float) (StrictMath.PI/2.0));
     		}
     		tryMove(bulletandme,5,2);
     		return true;

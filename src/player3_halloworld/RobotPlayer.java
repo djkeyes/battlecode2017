@@ -45,7 +45,21 @@ public strictfp class RobotPlayer {
         us = rc.getTeam();
         them = us.opponent();
 
-        gen = new Random(rc.getID());
+        // right now, robot IDs are fixed for each map, because each map has a fixed random seed.
+        // to circumvent this, we also take a seed as a command line param.
+        // fortunately, IDs are ints, so we can concatenate them into a long.
+        String seedArg;
+        if(us == Team.A){
+            seedArg = System.getProperty("bc.testing.team-a-seed");
+        } else {
+            seedArg = System.getProperty("bc.testing.team-b-seed");
+        }
+        long seed = rc.getID();
+        if (seedArg != null) {
+            long intSeedArg = Integer.parseInt(seedArg);
+            seed |= (intSeedArg << 32);
+        }
+        gen = new Random(seed);
     }
 
     static void run() throws GameActionException {
@@ -106,7 +120,7 @@ public strictfp class RobotPlayer {
     }
 
     static Direction randomDirection() {
-        return new Direction((float) Math.random() * 2 * (float) Math.PI);
+        return new Direction((float) gen.nextFloat() * 2 * (float) StrictMath.PI);
     }
 
     static void tryShakeNearby() throws GameActionException {
@@ -189,13 +203,13 @@ public strictfp class RobotPlayer {
         MapLocation otherLoc = other.getLocation();
         Direction dir = loc.directionTo(otherLoc);
         float dist = loc.distanceTo(otherLoc) - type.bodyRadius - other.getType().bodyRadius;
-        int numSamples = Math.max((int) (3 * dist), 2);
+        int numSamples = StrictMath.max((int) (3 * dist), 2);
         for (int i = 0; i < numSamples; i++) {
             float curDist = type.bodyRadius + dist * i / (numSamples - 1);
             if (i == 0) {
-                curDist = Math.nextUp(curDist);
+                curDist = StrictMath.nextUp(curDist);
             } else if (i == numSamples - 1) {
-                curDist = Math.nextDown(curDist);
+                curDist = StrictMath.nextDown(curDist);
             }
             MapLocation sampleLoc = loc.add(dir, curDist);
 

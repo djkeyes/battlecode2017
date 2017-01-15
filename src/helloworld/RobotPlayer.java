@@ -117,7 +117,7 @@ public strictfp class RobotPlayer {
     }
 
     static Direction randomDirection() {
-        return new Direction((float) gen.nextDouble() * 2 * (float) Math.PI);
+        return new Direction((float) gen.nextDouble() * 2 * (float) StrictMath.PI);
     }
 
     static void tryShakeNearby() throws GameActionException {
@@ -231,13 +231,13 @@ public strictfp class RobotPlayer {
         MapLocation loc = rc.getLocation();
         Direction dir = loc.directionTo(theirLoc);
         float dist = loc.distanceTo(theirLoc) - type.bodyRadius - theirRadius;
-        int numSamples = Math.max((int) (3 * dist), 2);
+        int numSamples = StrictMath.max((int) (3 * dist), 2);
         for (int i = 0; i < numSamples; i++) {
             float curDist = type.bodyRadius + dist * i / (numSamples - 1);
             if (i == 0) {
-                curDist = Math.nextUp(curDist);
+                curDist = StrictMath.nextUp(curDist);
             } else if (i == numSamples - 1) {
-                curDist = Math.nextDown(curDist);
+                curDist = StrictMath.nextDown(curDist);
             }
             MapLocation sampleLoc = loc.add(dir, curDist);
 
