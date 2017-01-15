@@ -23,8 +23,11 @@ strictfp class Gardener extends RobotPlayer {
     static int isMaxed = 0;
     static float adjacentTreeIncome = 0f;
 
+    static int earliestRushTurn;
+
     static void run() throws GameActionException {
         initializeTreePattern();
+        computeEarliestRush();
 
         while (true) {
             updateNearby();
@@ -40,7 +43,7 @@ strictfp class Gardener extends RobotPlayer {
                 if (shouldBuildTree) {
                     buildTree();
                 } else if (typeToBuild != null) {
-                    buildRobot();
+                    tryBuildRobot();
                 }
             } else {
                 tryReturnToCenter();
@@ -89,6 +92,32 @@ strictfp class Gardener extends RobotPlayer {
         }
     }
 
+    static void computeEarliestRush() {
+        // compare our position to all enemy archons.
+        // it takes 1 turn to build a gardener, then one turn to build a scout, then 20 turns for the scout to finish
+        // we can ignore the 20 though, because it also takes 20 minutes for us to build a unit
+        int scoutCompletionTurn = 1 + 1;
+        float minDist = Float.POSITIVE_INFINITY;
+        MapLocation[] archonLocs = rc.getInitialArchonLocations(them);
+        for (MapLocation loc : archonLocs) {
+            float dist = rc.getLocation().distanceTo(loc);
+            if (dist < minDist) {
+                minDist = dist;
+            }
+        }
+
+        // let's be pessimistic: the archon could build the gardener toward us, and the gardener could build the
+        // scout toward us
+        minDist -= RobotType.ARCHON.bodyRadius + 2 * RobotType.GARDENER.bodyRadius + RobotType.SCOUT.bodyRadius;
+        // when do we want to have our defence?
+        // when they see us? when we see them? when they're next to us?
+        minDist -= RobotType.SCOUT.sensorRadius;
+
+        int travelTurns = (int) StrictMath.ceil(minDist / RobotType.SCOUT.strideRadius);
+
+        earliestRushTurn = scoutCompletionTurn + travelTurns;
+    }
+
     static void determineWhatToBuild() throws GameActionException {
         if (needDefences()) {
             shouldBuildTree = false;
@@ -103,10 +132,34 @@ strictfp class Gardener extends RobotPlayer {
     }
 
     static boolean needDefences() {
-        // TODO: determine a good rule for building a military
-        // ideas:
-        // - the enemy outnumbers us OR we have zero units, but scouts could reach us by the time our units are finished
-        return false;
+        // for this, only check nearby units
+        // sure, we might have an army, but if it's far away it's no help.
+
+        int alliedFighters = 0;
+        for (RobotInfo ally : alliesInSignt) {
+            if (ally.type.canAttack()) {
+                alliedFighters++;
+            }
+        }
+        int enemyFighters = 0;
+        for (RobotInfo enemy : enemiesInSight) {
+            if (enemy.type.canAttack()) {
+                enemyFighters++;
+            }
+        }
+
+        // could experiment with tolerances here
+        if (alliedFighters < enemyFighters) {
+            return true;
+        }
+
+        if (alliedFighters > 0) {
+            return false;
+        }
+
+        // exactly 0 nearby. check if we could have been rushed
+        // TODO: even if this is true, we might be low on money. check our income rate and compute when to start saving
+        return rc.getRoundNum() > earliestRushTurn;
     }
 
     static boolean canAddNewTree() throws GameActionException {
@@ -149,8 +202,24 @@ strictfp class Gardener extends RobotPlayer {
         treeConstructionTurn[nextTreeIdx] = rc.getRoundNum();
     }
 
-    static void buildRobot() {
-        // TODO
+    static boolean tryBuildRobot() throws GameActionException {
+        // TODO check locations in a more structured way
+        // for example, check nearby units and detect free space. alternatively, since trees are in a pattern, try
+        // building in holes in the pattern.
+
+        if (rc.getTeamBullets() < typeToBuild.bulletCost) {
+            return false;
+        }
+
+        int numRetries = 20;
+        for (int i = 0; i < numRetries; i++) {
+            Direction dir = randomDirection();
+            if (rc.canBuildRobot(typeToBuild, dir)) {
+                rc.buildRobot(typeToBuild, dir);
+                return true;
+            }
+        }
+        return false;
     }
 
     static void tryReturnToCenter() throws GameActionException {
@@ -190,7 +259,8 @@ strictfp class Gardener extends RobotPlayer {
             if (treeIds[i] == -1) {
                 // check if it's even possible to build here
                 MapLocation treePosition = computeTreePosition(i);
-                if (rc.onTheMap(treePosition, GameConstants.BULLET_TREE_RADIUS)
+                if (rc.canMove(plantingPositions[i])
+                        && rc.onTheMap(treePosition, GameConstants.BULLET_TREE_RADIUS)
                         && !rc.isCircleOccupied(treePosition, GameConstants.BULLET_TREE_RADIUS)) {
                     numTreesPossible++;
                 }
@@ -225,7 +295,7 @@ strictfp class Gardener extends RobotPlayer {
         }
     }
 
-    static boolean moreEfficientToNotBuildTree(){
+    static boolean moreEfficientToNotBuildTree() {
         if (Messaging.totalTreeIncome <= 0.0001f) {
             return false;
         }
@@ -235,13 +305,13 @@ strictfp class Gardener extends RobotPlayer {
         // While it's difficult to estimate the payoff of gardeners and military, trees are easy with optimistic
         // assumptions about tree health).
         // ...for some reason, turns to grow and bullet tree max income aren't game constants...
-        float turnsForTreeToBreakEven = 80f + GameConstants.BULLET_TREE_COST/1f;
+        float turnsForTreeToBreakEven = 80f + GameConstants.BULLET_TREE_COST / 1f;
 
         int vpLeft = GameConstants.VICTORY_POINTS_TO_WIN - rc.getTeamVictoryPoints();
         float defaultIncome = StrictMath.max(0f, GameConstants.ARCHON_BULLET_INCOME
                 - GameConstants.BULLET_INCOME_UNIT_PENALTY * StrictMath.max(100f, rc.getTeamBullets()));
         float bulletsPerTurn = Messaging.totalTreeIncome + defaultIncome;
-        float turnsToWin = (vpLeft*GameConstants.BULLET_EXCHANGE_RATE - rc.getTeamBullets())/bulletsPerTurn;
+        float turnsToWin = (vpLeft * GameConstants.BULLET_EXCHANGE_RATE - rc.getTeamBullets()) / bulletsPerTurn;
 
         return turnsForTreeToBreakEven > turnsToWin;
     }

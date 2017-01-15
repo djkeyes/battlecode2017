@@ -14,6 +14,9 @@ public strictfp class RobotPlayer {
 
     static Random gen;
 
+    static RobotInfo[] enemiesInSight = null;
+    static RobotInfo[] alliesInSignt = null;
+
     @SuppressWarnings("unused")
     public static void run(RobotController rc) {
         init(rc);
@@ -172,7 +175,8 @@ public strictfp class RobotPlayer {
     }
 
     static void updateNearby() {
-        // TODO
+        enemiesInSight = rc.senseNearbyRobots(type.sensorRadius, them);
+        alliesInSignt = rc.senseNearbyRobots(type.sensorRadius, us);
     }
 
     static boolean tryDodgeBullets() {

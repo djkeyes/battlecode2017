@@ -51,6 +51,10 @@ public strictfp class Archon extends RobotPlayer {
             return false;
         }
 
+        // TODO: if there's no military nearby, gardeners will try to build defenses
+        // so if there's already a gardener and no military, don't build more gardeners
+        // might need to set a messaging flag for this
+
         // trees are cheaper than gardeners, so we could just ignore this, but sometimes we'll end up with 2
         // gardeners at the beginning
         if (!maxedOutOnTrees()) {
