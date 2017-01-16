@@ -7,12 +7,13 @@ strictfp class Lumberjack extends RobotPlayer {
     static void run() throws GameActionException {
         while (true) {
             Messaging.tryGetUnitCounts();
+            updateNearby();
 
-            boolean attacked = false;
+            boolean attacked = tryMeleeAttackEnemy();
 
             if (!tryMoveTowardEnemy()) {
                 Direction dir = randomDirection();
-                if(!tryMove(dir, 45, 20)) {
+                if(!tryMove(dir, 45, 20) && !attacked) {
                     attacked = tryChop(dir);
                 }
             }
@@ -145,6 +146,33 @@ strictfp class Lumberjack extends RobotPlayer {
             }
             return true;
         }
+
+        // defensive play: if the enemy type is a scout, and there's a gardener nearby, use strike
+        // even if there's an allied tree nearby, the gardener should be able to heal it fast enough.
+        // note: the presence of a gardener sort of implies that we're on the defensive, so this should rarely
+        // activate when being offensive.
+        boolean nearEnemyScout = false;
+        for (RobotInfo enemy : enemies) {
+            if (enemy.getType() == RobotType.SCOUT) {
+                nearEnemyScout = true;
+                break;
+            }
+        }
+        if(nearEnemyScout){
+            boolean nearAllyGardener = false;
+            // this requires updateNearby() as a prerequisite
+            for (RobotInfo ally : alliesInSignt) {
+                if (ally.getType() == RobotType.GARDENER) {
+                    nearAllyGardener = true;
+                    break;
+                }
+            }
+            if(nearAllyGardener){
+                rc.strike();
+                return true;
+            }
+        }
+
 
         // to risky to do AOE, but any enemy trees nearby?
         if(weakestEnemyTree != null){
