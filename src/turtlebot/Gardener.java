@@ -337,7 +337,7 @@ strictfp class Gardener extends RobotPlayer {
         // check if any gardeners are less than 2*bodyRadius + 4*bulletTreeRadius away
         // in fact, we actually need more, but ignore that for now
         for (RobotInfo ally : alliesInSignt) {
-            if (ally.type == RobotType.GARDENER) {
+            if (ally.type == RobotType.GARDENER || ally.type == RobotType.ARCHON) {
                 return true;
             }
 
@@ -356,11 +356,11 @@ strictfp class Gardener extends RobotPlayer {
 
     static void moveAwayFromPack() throws GameActionException {
         // apply a "force"
-        float K = 30.0f;
+        float K = 50.0f;
         float fx = 0f;
         float fy = 0f;
         for (RobotInfo ally : alliesInSignt) {
-            if (ally.type == RobotType.GARDENER) {
+            if (ally.type == RobotType.GARDENER || ally.type == RobotType.ARCHON) {
                 float distSq = ally.location.distanceSquaredTo(rc.getLocation());
                 Direction dir = ally.location.directionTo(rc.getLocation());
                 fx += dir.getDeltaX(K) / distSq;
