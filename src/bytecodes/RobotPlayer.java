@@ -44,6 +44,7 @@ public strictfp class RobotPlayer {
 
         timeUpdateCollections();
         timeRobotControllerMethods(rc);
+        timeMethodReference();
     }
 
     @SuppressWarnings("unused")
@@ -889,6 +890,37 @@ public strictfp class RobotPlayer {
         rc.canMove(Direction.getNorth());
         after = Clock.getBytecodeNum();
         expected = 14;
+        actual = after - before;
+        assertEquals(expected, actual);
+    }
+
+    private interface VoidInterface {
+        void doIt();
+    }
+    private static void noop() {}
+
+    public static void timeMethodReference() {
+        int before, after;
+        int expected, actual;
+
+        before = Clock.getBytecodeNum();
+        VoidInterface foo;
+        after = Clock.getBytecodeNum();
+        expected = 1;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        foo = RobotPlayer::noop;
+        after = Clock.getBytecodeNum();
+        expected = 2;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        foo.doIt();
+        after = Clock.getBytecodeNum();
+        expected = 3;
         actual = after - before;
         assertEquals(expected, actual);
     }
