@@ -69,7 +69,7 @@ strictfp class Gardener extends RobotPlayer {
 
             if (Messaging.shouldSendHeartbeat()) {
                 examineAdjacentTrees();
-                Messaging.sendHeartbeatSignal(0, 1, isMaxed, adjacentTreeIncome);
+                Messaging.sendHeartbeatSignal(0, 1, 0, isMaxed, adjacentTreeIncome);
             }
             // if we build a tree, we could also send an update immediately. however, trees take a long time to grow, so
             // the information might not be very actionable.
@@ -144,7 +144,12 @@ strictfp class Gardener extends RobotPlayer {
 
     static boolean needDefences() {
         // for this, only check nearby units
-        // sure, we might have an army, but if it's far away it's no help.
+
+        // this should already be plenty of defenders. hopefully they're close enough.
+        // TODO(daniel): maybe this should be a ratio, like gardeners-per-lumberjack
+        if(Messaging.lumberjackCount >= 6){
+            return false;
+        }
 
         int alliedFighters = 0;
         for (RobotInfo ally : alliesInSignt) {

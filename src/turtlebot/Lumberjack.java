@@ -6,6 +6,8 @@ strictfp class Lumberjack extends RobotPlayer {
 
     static void run() throws GameActionException {
         while (true) {
+            Messaging.tryGetUnitCounts();
+
             boolean attacked = false;
 
             if (!tryMoveTowardEnemy()) {
@@ -20,6 +22,10 @@ strictfp class Lumberjack extends RobotPlayer {
             }
 
             tryShakeNearby();
+
+            if (Messaging.shouldSendHeartbeat()) {
+                Messaging.sendHeartbeatSignal(0, 0, 1, 0, 0f);
+            }
 
             donateExcessVictoryPoints();
 

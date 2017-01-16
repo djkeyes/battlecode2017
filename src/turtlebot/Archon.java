@@ -34,9 +34,9 @@ public strictfp class Archon extends RobotPlayer {
             donateExcessVictoryPoints();
 
             if (Messaging.shouldSendHeartbeat()) {
-                Messaging.sendHeartbeatSignal(1, builtGardener ? 1 : 0, 0, 0);
+                Messaging.sendHeartbeatSignal(1, builtGardener ? 1 : 0, 0, 0, 0);
             } else if (builtGardener) {
-                Messaging.reportUnitBuilt(0, 1, 0, 0f);
+                Messaging.reportUnitBuilt(0, 1, 0, 0, 0f);
             }
 
             Clock.yield();

@@ -8,10 +8,12 @@ public strictfp class Messaging extends RobotPlayer {
     static final int LAST_COUNT_UPDATE_CHANNEL = 0;
     static final int ARCHON_COUNT_CHANNEL = 1;
     static final int GARDENER_COUNT_CHANNEL = 2;
+    static final int LUMBERJACK_COUNT_CHANNEL = 3;
     static final int MAXED_GARDENER_COUNT_CHANNEL = 10;
     static final int TOTAL_TREE_INCOME_CHANNEL = 11;
     static int archonCount = 0;
     static int gardenerCount = 0;
+    static int lumberjackCount = 0;
     static int maxedGardenerCount = 0;
     static float totalTreeIncome = 0;
 
@@ -26,6 +28,7 @@ public strictfp class Messaging extends RobotPlayer {
     static void getUnitCounts() throws GameActionException {
         archonCount = rc.readBroadcast(ARCHON_COUNT_CHANNEL);
         gardenerCount = rc.readBroadcast(GARDENER_COUNT_CHANNEL);
+        lumberjackCount = rc.readBroadcast(LUMBERJACK_COUNT_CHANNEL);
         maxedGardenerCount = rc.readBroadcast(MAXED_GARDENER_COUNT_CHANNEL);
         int encodedTreeIncome = rc.readBroadcast(TOTAL_TREE_INCOME_CHANNEL);
         totalTreeIncome = Float.intBitsToFloat(encodedTreeIncome);
@@ -36,7 +39,8 @@ public strictfp class Messaging extends RobotPlayer {
         return rc.getRoundNum() % TURNS_BETWEEN_COUNTS == 1;
     }
 
-    static void sendHeartbeatSignal(int numArchons, int numGardeners, int numMaxedGardeners, float treeIncome) throws GameActionException {
+    static void sendHeartbeatSignal(int numArchons, int numGardeners, int numLumberjacks, int numMaxedGardeners, float
+            treeIncome) throws GameActionException {
         // precondition: shouldSendHeartbeat() must be true
 
         int lastCountUpdate = rc.readBroadcast(LAST_COUNT_UPDATE_CHANNEL);
@@ -45,6 +49,7 @@ public strictfp class Messaging extends RobotPlayer {
             rc.broadcast(LAST_COUNT_UPDATE_CHANNEL, rc.getRoundNum());
             rc.broadcast(ARCHON_COUNT_CHANNEL, numArchons);
             rc.broadcast(GARDENER_COUNT_CHANNEL, numGardeners);
+            rc.broadcast(LUMBERJACK_COUNT_CHANNEL, numLumberjacks);
             rc.broadcast(MAXED_GARDENER_COUNT_CHANNEL, numMaxedGardeners);
             int encodedIncome = Float.floatToIntBits(treeIncome);
             rc.broadcast(TOTAL_TREE_INCOME_CHANNEL, encodedIncome);
@@ -57,6 +62,10 @@ public strictfp class Messaging extends RobotPlayer {
             if (numGardeners > 0) {
                 numGardeners += rc.readBroadcast(GARDENER_COUNT_CHANNEL);
                 rc.broadcast(GARDENER_COUNT_CHANNEL, numGardeners);
+            }
+            if (numLumberjacks > 0) {
+                numLumberjacks += rc.readBroadcast(LUMBERJACK_COUNT_CHANNEL);
+                rc.broadcast(LUMBERJACK_COUNT_CHANNEL, numLumberjacks);
             }
             if (numMaxedGardeners > 0) {
                 numMaxedGardeners += rc.readBroadcast(MAXED_GARDENER_COUNT_CHANNEL);
@@ -71,7 +80,8 @@ public strictfp class Messaging extends RobotPlayer {
         }
     }
 
-    static void reportUnitBuilt(int numArchons, int numGardeners, int numMaxedGardeners, float treeIncome) throws
+    static void reportUnitBuilt(int numArchons, int numGardeners, int numLumberjacks, int numMaxedGardeners, float
+            treeIncome) throws
             GameActionException {
         // precondition: getUnitCounts() must be called before this and shouldSendHeartbeat() must be false
         // (if shouldSendHeartbeat() is true, call sendHeartbeatSignal() instead)
@@ -83,6 +93,9 @@ public strictfp class Messaging extends RobotPlayer {
         }
         if (numGardeners > 0) {
             rc.broadcast(GARDENER_COUNT_CHANNEL, gardenerCount + numGardeners);
+        }
+        if (numLumberjacks > 0) {
+            rc.broadcast(LUMBERJACK_COUNT_CHANNEL, lumberjackCount + numLumberjacks);
         }
         if (numMaxedGardeners > 0) {
             rc.broadcast(MAXED_GARDENER_COUNT_CHANNEL, maxedGardenerCount + numMaxedGardeners);
