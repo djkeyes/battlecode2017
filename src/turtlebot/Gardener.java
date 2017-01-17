@@ -5,9 +5,7 @@ import battlecode.common.*;
 strictfp class Gardener extends RobotPlayer {
 
 
-    // TODO: we could experiment with other values 7 <= n <= 10. Alternatively, each gardener could dynamically
-    // this implementation doesn't hand n=6, because it packs trees more tightly than GameConstants
-    // .GENERAL_SPAWN_OFFSET--but that could be added as a special case.
+    // Changing the values 7 <= n <= 10 doesn't seems to have a significant effect.
     static final int NUM_TREES_PER_GARDENER = 8;
     static final float TREE_OFFSET_EPSILON = 0.0001f;
     static boolean shouldBuildTree;
