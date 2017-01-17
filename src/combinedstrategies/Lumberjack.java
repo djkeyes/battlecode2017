@@ -4,25 +4,49 @@ import battlecode.common.*;
 
 public class Lumberjack extends RobotPlayer implements RobotHandler {
 
+    private int turnsAlive = 0;
+    private TreeInfo[] neutralTreesInVision = null;
+    private TreeInfo[] neutralTreesInStrideRadius = null;
+
+
     @Override
     public void init() throws GameActionException {
-
     }
 
     @Override
     public void onLoop() throws GameActionException {
         boolean attacked = tryMeleeAttackEnemy();
+        neutralTreesInVision = rc.senseNearbyTrees(type.sensorRadius, Team.NEUTRAL);
+        neutralTreesInStrideRadius = rc.senseNearbyTrees(type.strideRadius, Team.NEUTRAL);
 
-        if (!tryMoveTowardEnemy()) {
-            Direction dir = randomDirection();
-            if(!tryMove(dir, 45, 20) && !attacked) {
-                attacked = tryChop(dir);
+        if (!tryMoveTowardEnemy(6000)) {
+            if (!attacked && neutralTreesInStrideRadius.length > 0) {
+                // if we've found a neutral tree, don't bother moving at all.
+                chopBest();
+                attacked = true;
+            } else if (neutralTreesInVision.length > 0) {
+                tryMoveTowardNeutralTrees(8000);
+                neutralTreesInVision = rc.senseNearbyTrees(type.sensorRadius, Team.NEUTRAL);
+                // try again
+                if (!attacked && neutralTreesInStrideRadius.length > 0) {
+                    chopBest();
+                    attacked = true;
+                }
+            } else {
+                // TODO: find a good heuristic for clearing at home vs attacking
+                if (needToMoveAwayFromPack() && turnsAlive < 500 && rc.getRoundNum() < 2500) {
+                    moveAwayFromPack();
+                } else {
+                    tryMoveTowardEnemyArchons(8000);
+                }
             }
         }
 
         if (!attacked) {
             tryMeleeAttackEnemy();
         }
+
+        turnsAlive++;
     }
 
     @Override
@@ -32,82 +56,48 @@ public class Lumberjack extends RobotPlayer implements RobotHandler {
         }
     }
 
-
-    static boolean tryChop(Direction dir) throws GameActionException {
-        // try chopping
-        MapLocation loc = rc.getLocation();
-        // First, try intended direction
-        TreeInfo[] blockingTrees = rc.senseNearbyTrees(loc.add(dir, type.strideRadius), type.bodyRadius, them);
-        if (blockingTrees.length == 0) {
-            blockingTrees = rc.senseNearbyTrees(loc.add(dir, type.strideRadius), type.bodyRadius, Team.NEUTRAL);
+    private boolean tryMoveTowardNeutralTrees(int maxBytecodes) throws GameActionException {
+        // precondition: neutralTreesInVision.length > 0
+        // just find the closest
+        MapLocation closest = null;
+        float minDist = Float.MAX_VALUE;
+        MapLocation myLoc = rc.getLocation();
+        for (TreeInfo tree : neutralTreesInVision) {
+            float dist = myLoc.distanceTo(tree.getLocation());
+            if (dist < minDist) {
+                minDist = dist;
+                closest = tree.getLocation();
+            }
         }
-        if (blockingTrees.length > 0) {
-            // pick one within range
-            TreeInfo reachableTree = null;
-            for (TreeInfo tree : blockingTrees) {
-                if (rc.canChop(tree.getID())) {
-                    reachableTree = tree;
-                    break;
-                }
-            }
-            if (reachableTree == null) {
-                return false;
-            }
-            float prevHealth = reachableTree.getHealth();
-            rc.chop(reachableTree.getID());
-            if (prevHealth < GameConstants.LUMBERJACK_CHOP_DAMAGE) {
-                if (rc.canMove(dir)) {
-                    rc.move(dir);
-                }
-            }
-            return true;
-        }
-
-        // A move never happened, so return false.
-        return false;
+        return tryMoveTo(closest, maxBytecodes);
     }
 
-    static boolean tryMoveTowardEnemy() throws GameActionException {
-        // since we're melee, just move toward an enemy
-        // preferably one that can't outrun us
+    private void chopBest() throws GameActionException {
+        // precondition: neutralTreesInStrideRadius.length > 0
 
-        RobotInfo[] enemies = rc.senseNearbyRobots(-1, them);
+        // pick a tree
+        // TODO: which one to choose? min health? max area covered? has contained robot?
+        // for now, use 1. has contained, 2. min health
 
-        if (enemies.length == 0) {
-            return false;
-        }
-
-        RobotInfo closestSlowEnemy = null;
-        RobotInfo closestFastEnemy = null;
-        float slowEnemyDist = Float.MAX_VALUE;
-        float fastEnemyDist = Float.MAX_VALUE;
-        for (RobotInfo enemy : enemies) {
-            float dist = rc.getLocation().distanceTo(enemy.getLocation());
-            if (enemy.getType().strideRadius > type.strideRadius) {
-                if (dist < fastEnemyDist) {
-                    fastEnemyDist = dist;
-                    closestFastEnemy = enemy;
+        TreeInfo bestTree = null;
+        boolean hasContainedRobot = false;
+        float minHealth = Float.MAX_VALUE;
+        for (TreeInfo tree : neutralTreesInStrideRadius) {
+            if (tree.containedRobot != null) {
+                if (tree.health < minHealth || !hasContainedRobot) {
+                    hasContainedRobot = true;
+                    minHealth = tree.health;
+                    bestTree = tree;
                 }
-            } else {
-                if (dist < slowEnemyDist) {
-                    slowEnemyDist = dist;
-                    closestSlowEnemy = enemy;
+            } else if (!hasContainedRobot) {
+                if (tree.health < minHealth) {
+                    minHealth = tree.health;
+                    bestTree = tree;
                 }
             }
         }
 
-        RobotInfo target = closestSlowEnemy;
-        if (closestFastEnemy != null) {
-            target = closestFastEnemy;
-        }
-
-        if (target == null) {
-            return false;
-        }
-
-        Direction dir = rc.getLocation().directionTo(target.getLocation());
-
-        return tryMove(dir, 45, 10);
+        rc.chop(bestTree.getID());
     }
 
     static boolean tryMeleeAttackEnemy() throws GameActionException {
@@ -136,7 +126,7 @@ public class Lumberjack extends RobotPlayer implements RobotHandler {
 
         if (totalEnemies > totalAllies || nearArchon) {
             // maximize damage
-            if (enemyTrees.length == 0 || (totalEnemies - totalAllies)*RobotType.LUMBERJACK.attackPower >
+            if (enemyTrees.length == 0 || (totalEnemies - totalAllies) * RobotType.LUMBERJACK.attackPower >
                     GameConstants.LUMBERJACK_CHOP_DAMAGE || weakestEnemyTree == null) {
                 rc.strike();
             } else {
@@ -157,7 +147,7 @@ public class Lumberjack extends RobotPlayer implements RobotHandler {
                 break;
             }
         }
-        if(nearEnemyScout){
+        if (nearEnemyScout) {
             boolean nearAllyGardener = false;
             // this requires updateNearby() as a prerequisite
             for (RobotInfo ally : alliesInSignt) {
@@ -166,7 +156,7 @@ public class Lumberjack extends RobotPlayer implements RobotHandler {
                     break;
                 }
             }
-            if(nearAllyGardener){
+            if (nearAllyGardener) {
                 rc.strike();
                 return true;
             }
@@ -174,14 +164,14 @@ public class Lumberjack extends RobotPlayer implements RobotHandler {
 
 
         // to risky to do AOE, but any enemy trees nearby?
-        if(weakestEnemyTree != null){
+        if (weakestEnemyTree != null) {
             rc.chop(weakestEnemyTree.getID());
             return true;
         }
         TreeInfo[] neutralTrees = rc.senseNearbyTrees(type.bodyRadius + GameConstants.LUMBERJACK_STRIKE_RADIUS,
                 Team.NEUTRAL);
         // any neutral trees nearby?
-        if(neutralTrees.length > 0){
+        if (neutralTrees.length > 0) {
             TreeInfo weakestNeutralTree = getWeakestTree(neutralTrees);
             if (weakestNeutralTree != null) {
                 rc.chop(weakestNeutralTree.getID());
@@ -192,15 +182,15 @@ public class Lumberjack extends RobotPlayer implements RobotHandler {
         return false;
     }
 
-    static TreeInfo getWeakestTree(TreeInfo[] trees){
+    static TreeInfo getWeakestTree(TreeInfo[] trees) {
         double minHealth = Double.POSITIVE_INFINITY;
         TreeInfo bestTree = null;
-        for(TreeInfo tree : trees){
+        for (TreeInfo tree : trees) {
             float dist = tree.getLocation().distanceTo(rc.getLocation());
-            if(dist > RobotType.LUMBERJACK.bodyRadius + tree.getRadius() + RobotType.LUMBERJACK.strideRadius){
+            if (dist > RobotType.LUMBERJACK.bodyRadius + tree.getRadius() + RobotType.LUMBERJACK.strideRadius) {
                 continue;
             }
-            if(tree.health < minHealth){
+            if (tree.health < minHealth) {
                 minHealth = tree.health;
                 bestTree = tree;
             }

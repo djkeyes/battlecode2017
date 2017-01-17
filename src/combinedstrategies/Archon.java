@@ -32,7 +32,11 @@ strictfp class Archon extends RobotPlayer implements RobotHandler {
         // -stay still
         // staying still is the easiest to implement, so we'll do that for now
 
-        builtGardener = tryBuildGardener();
+        if (Messaging.gardenerCount <= 15
+                && (Messaging.gardenerCount < 4
+                || Messaging.soldierCount + Messaging.lumberjackCount + Messaging.tankCount > 3 * Messaging.gardenerCount)) {
+            builtGardener = tryBuildGardener();
+        }
 
         if (!tryDodgeBullets()) {
             if (needToMoveAwayFromPack()) {

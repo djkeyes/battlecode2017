@@ -197,7 +197,93 @@ public strictfp class RobotPlayer {
     }
 
 
-    // TODO: completely rewrite these
+    private static final float FRUSTRATION_DISTANCE_THRESHOLD = 0.1f;
+
+    /**
+     * Movement via randomized simulation. Since we're constrained by bytecodes, this performs several trials and
+     * pick the best one. This is a greedy strategy though, so it can get stuck in local minima. A better method
+     * might be to pair this with some kind of bug-navigation, so we can path around holes in the wall.
+     * <p>
+     * Tanks should *not* use this, since it doesn't check friendly tree collisions.
+     *
+     * @param target       The target location
+     * @param maxBytecodes The amount of bytecodes at which to terminate. This may use slightly more (TODO: estimate
+     *                     bytecodes per iteration and terminate early if necessary).
+     * @return
+     * @throws GameActionException
+     */
+    static boolean tryMoveTo(MapLocation target, int maxBytecodes) throws GameActionException {
+        // try several possible locations, and store the one that brings us closest.
+        // first, try moving straight
+        MapLocation start = rc.getLocation();
+        Direction targetDir = start.directionTo(target);
+        if (rc.canMove(targetDir)) {
+            rc.move(start.directionTo(target));
+            return true;
+        }
+
+        // TODO: what if the target within our stride radius? just ignore that case for now.
+
+        MapLocation bestLocation = null;
+        // in the worse case, we can just stay here
+        float minDist = start.distanceTo(target);
+
+        double stride = type.strideRadius;
+        double d = minDist;
+        double x = stride * stride / (2 * minDist);
+        double y = StrictMath.sqrt(stride * stride - x * x);
+        double maxTheta = StrictMath.atan2(y, x);
+        double minR = 0;
+
+        double theta;
+        double r;
+        while (Clock.getBytecodeNum() < maxBytecodes) {
+            // I would like to uniformly sample from the stride space. However, as soon as we have one possible
+            // position, we can eliminate all strides whose distance to the target is larger. In effect, we'd really
+            // like to sample from the lens-shape formed by the intersection of two circles.
+            // It's possible to compute that (uniformly sample from two circular caps), but it's difficult. instead
+            // just do rejection sampling.
+
+            theta = maxTheta * (2. * gen.nextDouble() - 1.);
+            r = gen.nextDouble() * (1. - minR) + minR;
+            MapLocation next = start.add((float) theta, (float) r);
+            float dist = target.distanceTo(next);
+            if (dist < minDist) {
+                if (rc.canMove(next)) {
+                    minDist = dist;
+                    bestLocation = next;
+
+                    x = (stride * stride - dist * dist + d * d) / (2 * d);
+                    y = StrictMath.sqrt(stride * stride - x * x);
+
+                    maxTheta = StrictMath.atan2(y, x);
+                    minR = d - dist;
+                }
+            }
+        }
+
+        if (d - minDist < FRUSTRATION_DISTANCE_THRESHOLD) {
+            // just move randomly, even if it move us farther away
+            // TODO: bug pathfinding
+            for (int i = 0; i < 10; i++) {
+                Direction dir = randomDirection();
+                MapLocation next = start.add(dir);
+                if (rc.canMove(next)) {
+                    bestLocation = next;
+                    break;
+                }
+
+            }
+        }
+
+        if (bestLocation == null) {
+            return false;
+        }
+
+        rc.move(bestLocation);
+        return true;
+    }
+
     static boolean tryMove(Direction dir, float degreeOffset, int checksPerSide) throws GameActionException {
         // daniel: wow, this sucks. rewrite it.
 
@@ -325,19 +411,126 @@ public strictfp class RobotPlayer {
             }
             MapLocation sampleLoc = loc.add(dir, curDist);
 
-            if (rc.isLocationOccupied(sampleLoc)) {
+            if (rc.canSenseLocation(sampleLoc) && rc.isLocationOccupied(sampleLoc)) {
                 return true;
             }
         }
         return false;
     }
 
-    static boolean tryMoveTowardEnemyArchons() throws GameActionException {
+    static boolean tryMoveTowardEnemyArchons(int maxBytecodes) throws GameActionException {
         MapLocation[] archonLocs = rc.getInitialArchonLocations(them);
         // target each one in order
 
         int idx = (rc.getRoundNum() / 300) % archonLocs.length;
-        Direction dirToArchons = rc.getLocation().directionTo(archonLocs[idx]);
-        return tryMove(dirToArchons, 45, 20);
+        return tryMoveTo(archonLocs[idx], maxBytecodes);
+    }
+
+
+    static boolean tryMoveTowardEnemy(int maxBytecodes) throws GameActionException {
+        // since we're melee, just move toward an enemy
+        // preferably one that can't outrun us
+
+        RobotInfo[] enemies = rc.senseNearbyRobots(-1, them);
+
+        if (enemies.length == 0) {
+            return false;
+        }
+
+        RobotInfo closestSlowEnemy = null;
+        RobotInfo closestFastEnemy = null;
+        float slowEnemyDist = Float.MAX_VALUE;
+        float fastEnemyDist = Float.MAX_VALUE;
+        for (RobotInfo enemy : enemies) {
+            float dist = rc.getLocation().distanceTo(enemy.getLocation());
+            if (enemy.getType().strideRadius > type.strideRadius) {
+                if (dist < fastEnemyDist) {
+                    fastEnemyDist = dist;
+                    closestFastEnemy = enemy;
+                }
+            } else {
+                if (dist < slowEnemyDist) {
+                    slowEnemyDist = dist;
+                    closestSlowEnemy = enemy;
+                }
+            }
+        }
+
+        RobotInfo target = closestSlowEnemy;
+        if (closestFastEnemy != null) {
+            target = closestFastEnemy;
+        }
+
+        if (target == null) {
+            return false;
+        }
+
+        return tryMoveTo(target.getLocation(), maxBytecodes);
+    }
+
+
+    static boolean tryAttackEnemy() throws GameActionException {
+        if (enemiesInSight.length == 0) {
+            return false;
+        }
+
+        if (!rc.canFireSingleShot()) {
+            return false;
+        }
+
+        // pick an enemy somehow
+        double maxEnemyScore = Double.NEGATIVE_INFINITY;
+        RobotInfo bestTarget = null;
+        for (RobotInfo enemy : enemiesInSight) {
+            // we should also check if there is an unobstructed path to the enemy from here
+            // unfortunately, that's complicated. maybe collect all nearby robots and sort by angle? that way we can
+            // binary search these kinds of queries.
+            if (isPathToRobotObstructed(enemy)) {
+                continue;
+            }
+            double score = evaluateEnemy(enemy);
+            if (score > maxEnemyScore) {
+                maxEnemyScore = score;
+                bestTarget = enemy;
+            }
+        }
+
+        if (bestTarget != null) {
+            Direction dir = rc.getLocation().directionTo(bestTarget.location);
+            double dist = rc.getLocation().distanceTo(bestTarget.location);
+            // determine best kind of shot to fire
+            if(enemiesInSight.length > 3*alliesInSignt.length && rc.canFirePentadShot()){
+                rc.firePentadShot(dir);
+            } else {
+                double projectedAngle = StrictMath.asin(bestTarget.type.bodyRadius / dist);
+                if(projectedAngle >= GameConstants.PENTAD_SPREAD_DEGREES*2
+                        && rc.canFirePentadShot()){
+                    rc.firePentadShot(dir);
+                } else if(projectedAngle >= GameConstants.TRIAD_SPREAD_DEGREES
+                        && rc.canFireTriadShot()){
+                    rc.fireTriadShot(dir);
+                } else {
+                    rc.fireSingleShot(dir);
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
+    static double evaluateEnemy(RobotInfo enemy) {
+        // things to consider:
+        // -health
+        // -value (dps, dps*hp, isArchon) of enemy robot
+        // -distance / dodgeabililty
+        // -clusters of enemies
+
+        // for now, let's use -health*dist^3*stride
+        // health for the obvious reason of attacking the weakest
+        // dist^2 * stride * body to estimate dodgeability. dodgeability is super important.
+        // (minus sign, just to make it max instead of min)
+        float score = -enemy.getHealth() * rc.getLocation().distanceSquaredTo(enemy.getLocation())
+                * enemy.type.strideRadius * enemy.type.bodyRadius;
+        return score;
     }
 }

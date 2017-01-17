@@ -22,7 +22,7 @@ public class Scout extends RobotPlayer implements RobotHandler {
             tryHarassGardener();
         } else if (strategy == 1) {
             tryMoveOntoTree();
-            tryAttackEnemy();
+            tryAttackEnemyAsScout();
             if (!rc.hasMoved() && !rc.hasAttacked()) {
                 idle++;
                 if (idle > 200) { // Some time it sits there too long
@@ -31,7 +31,7 @@ public class Scout extends RobotPlayer implements RobotHandler {
             }
         } else {
             tryMoveTowardEnemy();
-            tryAttackEnemy();
+            tryAttackEnemyAsScout();
         }
     }
 
@@ -54,7 +54,7 @@ public class Scout extends RobotPlayer implements RobotHandler {
         } else { // No opponent ID being registered
             RobotInfo[] opponents = rc.senseNearbyRobots(10.0f, them);
             if (opponents.length == 0) {
-                tryMoveTowardEnemyArchons(); // No enemy spotted, go ahead find someone
+                tryMoveTowardEnemyArchons(5000); // No enemy spotted, go ahead find someone
             } else {
                 for (RobotInfo robotSpotted : opponents) {
                     if (robotSpotted.getType() == RobotType.GARDENER) {
@@ -64,7 +64,7 @@ public class Scout extends RobotPlayer implements RobotHandler {
                     }
                 }
             }
-            tryAttackEnemy(); // Random attack
+            tryAttackEnemyAsScout(); // Random attack
         }
         if (!rc.hasMoved()) {
             tryMove(randomDirection(), 20, 10); // no gardener found, try any direction loop around
@@ -208,7 +208,7 @@ public class Scout extends RobotPlayer implements RobotHandler {
         return tryMove(dir, 45, 10);
     }
 
-    private double evaluateEnemy(RobotInfo enemy) {
+    private double evaluateEnemyAsScout(RobotInfo enemy) {
         // things to consider:
         // -health
         // -value (dps, dps*hp, isArchon) of enemy robot
@@ -223,7 +223,7 @@ public class Scout extends RobotPlayer implements RobotHandler {
         return -enemy.getHealth() * rc.getLocation().distanceTo(enemy.getLocation());
     }
 
-    private boolean tryAttackEnemy() throws GameActionException {
+    private boolean tryAttackEnemyAsScout() throws GameActionException {
         RobotInfo[] robots = rc.senseNearbyRobots(-1, them);
 
         if (robots.length == 0) {
@@ -244,7 +244,7 @@ public class Scout extends RobotPlayer implements RobotHandler {
             if (enemy.type != RobotType.GARDENER || isPathToRobotObstructed(enemy)) {
                 continue;
             }
-            double score = evaluateEnemy(enemy);
+            double score = evaluateEnemyAsScout(enemy);
             if (score > maxEnemyScore) {
                 maxEnemyScore = score;
                 bestTarget = enemy;

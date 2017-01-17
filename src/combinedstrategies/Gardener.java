@@ -86,8 +86,8 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
             Messaging.sendHeartbeatSignal(0, 1, inConstruction.numLumberjacks,
                     inConstruction.numScouts, inConstruction.numSoldiers, inConstruction.numTanks, isMaxed,
                     adjacentTreeIncome);
-        } else if(builtUnit){
-            switch(typeToBuild){
+        } else if (builtUnit) {
+            switch (typeToBuild) {
                 case SCOUT:
                     Messaging.reportBuiltScout();
                     break;
@@ -208,8 +208,8 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
         }
         adjacentTreeIncome = GameConstants.BULLET_TREE_BULLET_PRODUCTION_RATE * totalTreeHealth;
 
-        // 1-tree leeway
-        if (numTrees >= numTreesPossible - 1) {
+        // 2-tree leeway
+        if (numTrees >= numTreesPossible - 2) {
             isMaxed = 1;
         } else {
             isMaxed = 0;
@@ -231,15 +231,27 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
             return false;
         }
 
+        // first check planting locations
+        for (int i = 0; i < NUM_TREES_PER_GARDENER; i++) {
+            MapLocation buildLoc = computeTreePosition(i);
+            if (rc.onTheMap(buildLoc, typeToBuild.bodyRadius)
+                    && !rc.isCircleOccupied(buildLoc, typeToBuild.bodyRadius)) {
+                rc.move(plantingPositions[i]);
+                rc.buildRobot(typeToBuild, plantingDirs[i]);
+                inConstruction.enqueue(typeToBuild, rc.getRoundNum() + 20);
+                numUnitsBuilt++;
+                return true;
+            }
+        }
+
+        // then just try adjacent positions. maybe someone else is in the way.
         int numRetries = 20;
         for (int i = 0; i < numRetries; i++) {
             Direction dir = randomDirection();
             if (rc.canBuildRobot(typeToBuild, dir)) {
                 rc.buildRobot(typeToBuild, dir);
                 inConstruction.enqueue(typeToBuild, rc.getRoundNum() + 20);
-
                 numUnitsBuilt++;
-
                 return true;
             }
         }
@@ -247,25 +259,27 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
     }
 
     private void determineWhatToBuild() throws GameActionException {
-        if(BuildOrder.shouldFollowInitialBuildOrder()){
+        if (BuildOrder.shouldFollowInitialBuildOrder()) {
             typeToBuild = BuildOrder.nextToBuild();
             // null indicates tree
             shouldBuildTree = (typeToBuild == null) && canAddNewTree();
         } else {
-            if (needDefences()) {
+            boolean needDefences = needDefences();
+            boolean canAddTree = canAddNewTree();
+            if (needDefences || !canAddTree) {
                 shouldBuildTree = false;
-                if(numUnitsBuilt < 2 || numUnitsBuilt%2 == 1){
-                    typeToBuild = RobotType.SOLDIER;
-                } else {
+                if (numUnitsBuilt < 2 || numUnitsBuilt % 2 == 1) {
                     typeToBuild = RobotType.LUMBERJACK;
+                } else {
+                    typeToBuild = RobotType.SOLDIER;
                 }
-            } else if (canAddNewTree()) {
+            } else if (canAddTree) {
                 shouldBuildTree = true;
                 typeToBuild = null;
-            } else {
+            } /*else {
                 shouldBuildTree = false;
                 typeToBuild = null;
-            }
+            }*/
         }
     }
 
@@ -274,7 +288,9 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
 
         // this should already be plenty of defenders. hopefully they're close enough.
         // TODO(daniel): maybe this should be a ratio, like gardeners-per-lumberjack
-        if(Messaging.lumberjackCount + Messaging.soldierCount  + Messaging.tankCount >= 6){
+        if (Messaging.gardenerCount <= 4
+                && Messaging.lumberjackCount + Messaging.soldierCount + Messaging.tankCount >= 3 * Messaging
+                .gardenerCount) {
             return false;
         }
 
@@ -317,6 +333,7 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
 
         // check if there's space for another tree
         // for now, use a static tree pattern. in the future, it might help to dynamically fill gaps
+        int numSlots = 0;
         for (int i = 0; i < NUM_TREES_PER_GARDENER; i++) {
             if (treeIds[i] == -1) {
                 if (!rc.canMove(plantingPositions[i])) {
@@ -326,7 +343,11 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
                 if (rc.onTheMap(treePosition, GameConstants.BULLET_TREE_RADIUS)
                         && !rc.isCircleOccupied(treePosition, GameConstants.BULLET_TREE_RADIUS)) {
                     nextTreeIdx = i;
-                    return true;
+                    numSlots++;
+                    // leave one slot open
+                    if (numSlots >= 2) {
+                        return true;
+                    }
                 }
             }
         }
