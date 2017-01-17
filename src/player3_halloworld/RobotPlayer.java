@@ -213,7 +213,7 @@ public strictfp class RobotPlayer {
             }
             MapLocation sampleLoc = loc.add(dir, curDist);
 
-            if (rc.isLocationOccupied(sampleLoc)) {
+            if (rc.canSenseLocation(sampleLoc) && rc.isLocationOccupied(sampleLoc)) {
                 return true;
             }
         }
