@@ -45,6 +45,7 @@ public strictfp class RobotPlayer {
         timeUpdateCollections();
         timeRobotControllerMethods(rc);
         timeMethodReference();
+        timeSwitchStatement();
     }
 
     @SuppressWarnings("unused")
@@ -540,6 +541,13 @@ public strictfp class RobotPlayer {
 
         void packageNoop() {
         }
+
+        public final void finalNoop() {
+        }
+    }
+    private static final class FinalClass {
+        public void noop() {}
+        public final void finalNoop() {}
     }
 
     private static int staticVar;
@@ -626,9 +634,31 @@ public strictfp class RobotPlayer {
         assertEquals(expected, actual);
 
         before = Clock.getBytecodeNum();
+        methodic.finalNoop();
+        after = Clock.getBytecodeNum();
+        expected = 3;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
         Dummy.noop();
         after = Clock.getBytecodeNum();
         expected = 2;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        FinalClass finalWithMethods = new FinalClass();
+        before = Clock.getBytecodeNum();
+        finalWithMethods.noop();
+        after = Clock.getBytecodeNum();
+        expected = 3;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        finalWithMethods.finalNoop();
+        after = Clock.getBytecodeNum();
+        expected = 3;
         actual = after - before;
         assertEquals(expected, actual);
     }
@@ -924,4 +954,144 @@ public strictfp class RobotPlayer {
         actual = after - before;
         assertEquals(expected, actual);
     }
+
+    private enum SmallEnum {
+        ONE, TWO, THREE;
+    }
+    public static void timeSwitchStatement() {
+        int before, after;
+        int expected, actual;
+
+        int x = 5;
+        before = Clock.getBytecodeNum();
+        switch(x){
+            case 5:
+                break;
+        }
+        after = Clock.getBytecodeNum();
+        expected = 3;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        switch(x){
+            default:
+                break;
+        }
+        after = Clock.getBytecodeNum();
+        expected = 3;
+        actual = after - before;
+        assertEquals(expected, actual);
+        before = Clock.getBytecodeNum();
+        switch(x){
+            case 0:
+                break;
+            case 1:
+                break;
+            case 2:
+                break;
+            case 3:
+                break;
+            case 4:
+                break;
+            case 5:
+                break;
+        }
+        after = Clock.getBytecodeNum();
+        expected = 3;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        SmallEnum y = SmallEnum.TWO;
+        before = Clock.getBytecodeNum();
+        switch(y){
+            case ONE:
+                break;
+            case TWO:
+                break;
+            case THREE:
+                break;
+        }
+        after = Clock.getBytecodeNum();
+        expected = 38;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        // same test as before, to check for static initialization
+        before = Clock.getBytecodeNum();
+        switch(y){
+            case ONE:
+                break;
+            case TWO:
+                break;
+            case THREE:
+                break;
+        }
+        after = Clock.getBytecodeNum();
+        expected = 6;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        // same test as before, to check for static initialization
+        before = Clock.getBytecodeNum();
+        switch(y){
+            case ONE:
+                break;
+            case TWO:
+                break;
+            case THREE:
+                break;
+        }
+        after = Clock.getBytecodeNum();
+        expected = 6;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        switch(y){
+            case ONE:
+                break;
+            case THREE:
+                break;
+            case TWO:
+                break;
+        }
+        after = Clock.getBytecodeNum();
+        expected = 5;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        switch(y){
+            case TWO:
+                break;
+        }
+        after = Clock.getBytecodeNum();
+        expected = 5;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        switch(y){
+            default:
+                break;
+        }
+        after = Clock.getBytecodeNum();
+        expected = 5;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        RobotType z = RobotType.SCOUT;
+        before = Clock.getBytecodeNum();
+        switch(z){
+            default:
+                break;
+        }
+        after = Clock.getBytecodeNum();
+        expected = 5;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+    }
+
 }
