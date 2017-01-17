@@ -234,7 +234,8 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
         // first check planting locations
         for (int i = 0; i < NUM_TREES_PER_GARDENER; i++) {
             MapLocation buildLoc = computeTreePosition(i);
-            if (rc.onTheMap(buildLoc, typeToBuild.bodyRadius)
+            if (rc.canMove(plantingPositions[i])
+                    && rc.onTheMap(buildLoc, typeToBuild.bodyRadius)
                     && !rc.isCircleOccupied(buildLoc, typeToBuild.bodyRadius)) {
                 rc.move(plantingPositions[i]);
                 rc.buildRobot(typeToBuild, plantingDirs[i]);
