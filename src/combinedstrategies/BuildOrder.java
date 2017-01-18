@@ -27,7 +27,7 @@ public class BuildOrder extends RobotPlayer{
         // TODO: rewrite this class to make testing easier
         if(Messaging.gardenerCount == 0){
             return RobotType.GARDENER;
-        } else if(Messaging.scoutCount == 0){
+        } else if(Messaging.scoutCount <= 1){
             return RobotType.SCOUT;
         } else if(Messaging.soldierCount == 0){
             return RobotType.SOLDIER;
