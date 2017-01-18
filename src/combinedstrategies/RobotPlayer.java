@@ -629,6 +629,7 @@ public strictfp class RobotPlayer {
                 rc.firePentadShot(dir);
             } else {
                 double projectedAngle = StrictMath.asin(bestTarget.type.bodyRadius / dist);
+                projectedAngle = StrictMath.toDegrees(projectedAngle);
                 if (projectedAngle >= GameConstants.PENTAD_SPREAD_DEGREES * 2
                         && rc.canFirePentadShot()) {
                     rc.firePentadShot(dir);
