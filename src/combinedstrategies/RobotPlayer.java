@@ -113,11 +113,16 @@ public strictfp class RobotPlayer {
     }
 
     static boolean tryDodgeBullets(int maxBytecodes) throws GameActionException {
+        return tryDodgeBulletsInDirection(maxBytecodes, null);
+    }
+
+    static boolean tryDodgeBulletsInDirection(int maxBytecodes, Direction desiredMovementDir) throws
+            GameActionException {
         // in the worse case, we could move one stride. then a bullet at highest speed could strike our body.
         float epsilon = 0.001f;
         float maxBulletDist = type.strideRadius + type.bodyRadius + RobotType.TANK.bulletSpeed + epsilon;
         BulletInfo[] possiblyRelevantBullets = rc.senseNearbyBullets();
-        if(possiblyRelevantBullets.length == 0){
+        if (possiblyRelevantBullets.length == 0) {
             return false;
         }
         MapLocation myLoc = rc.getLocation();
@@ -125,65 +130,80 @@ public strictfp class RobotPlayer {
         // only pick the relevant ones--these actually intersect the circle of radius maxBulletDist
         BulletInfo[] relevantBullets = new BulletInfo[possiblyRelevantBullets.length];
         int numRelevantBullets = 0;
-        for(int i=0; i < possiblyRelevantBullets.length; i++){
+        for (int i = 0; i < possiblyRelevantBullets.length; i++) {
             BulletInfo bullet = possiblyRelevantBullets[i];
 
             Direction dir = myLoc.directionTo(bullet.location);
             double dist = myLoc.distanceTo(bullet.location);
 
-            double a = bullet.speed*bullet.speed;
+            double a = bullet.speed * bullet.speed;
             double b = 2. * StrictMath.cos(bullet.dir.radiansBetween(dir)) * dist * bullet.speed;
-            double c = dist*dist - maxBulletDist*maxBulletDist;
+            double c = dist * dist - maxBulletDist * maxBulletDist;
 
-            double discr = b*b - 4.*a*c;
+            double discr = b * b - 4. * a * c;
             if (discr <= 0) {
                 // no intersection (ignoring grazing)
                 continue;
             }
             discr = StrictMath.sqrt(discr);
 
-            double t1 = (-b - discr)/(2.*a);
-            double t2 = (-b + discr)/(2.*a);
+            double t1 = (-b - discr) / (2. * a);
+            double t2 = (-b + discr) / (2. * a);
             if ((t1 <= 0. && 0. <= t2)
-                    || (t1 <= 1. && 1. <=t2)) {
+                    || (t1 <= 1. && 1. <= t2)) {
                 // actually has an intersection
                 relevantBullets[numRelevantBullets++] = bullet;
             }
         }
 
-        if(numRelevantBullets == 0){
+        if (numRelevantBullets == 0) {
             return false;
         }
 
         // now attempt to move
 
         // try several possible locations, and store the one incurs the least damage.
-        // first, see if not moving helps
 
         double body = type.bodyRadius + epsilon;
-        float minDamage = countDamageFromBullets(myLoc, body, relevantBullets, numRelevantBullets);
-        MapLocation bestLocation = myLoc;
+        float minDamage = Float.MAX_VALUE;
+        MapLocation bestLocation = null;
 
+        double thetaOffset = 0;
+        double maxTheta = 2.0 * StrictMath.PI;
+        // if we're trying to move in a particular direction, only sample from that hemisphere
+        if (desiredMovementDir != null) {
+            thetaOffset = -StrictMath.PI / 2.;
+            maxTheta = StrictMath.PI;
+        } else {
+            // if we're not trying to go somewhere, first see if not moving helps
+            minDamage = countDamageFromBullets(myLoc, body, relevantBullets, numRelevantBullets);
+            bestLocation = myLoc;
+        }
         double theta;
         float r = type.strideRadius;
         while (minDamage > 0 && Clock.getBytecodeNum() < maxBytecodes) {
             // uniformly sample edges of stride space
             // we could also sample the whole circle, but counting bullets is so costly that we usually only get 10
             // or so iterations in.
-            theta = 2.0 * gen.nextDouble();
+            theta = thetaOffset + maxTheta * gen.nextDouble();
             MapLocation next = myLoc.add((float) theta, r);
-            if(rc.canMove(next)){
+            if (rc.canMove(next)) {
                 float damage = countDamageFromBullets(next, body, relevantBullets, numRelevantBullets);
-                if(damage < minDamage){
+                if (damage < minDamage) {
                     minDamage = damage;
                     bestLocation = next;
                 }
             }
         }
 
+        if(bestLocation == null){
+            return false;
+        }
+
         rc.move(bestLocation);
         return true;
     }
+
     static float countDamageFromBullets(MapLocation loc, double bodyRadius, BulletInfo[] bullets, int
             numRelevantBullets) {
         float totalDamage = 0f;
@@ -207,7 +227,7 @@ public strictfp class RobotPlayer {
             double t1 = (-b - discr) / (2. * a);
             double t2 = (-b + discr) / (2. * a);
             if ((t1 <= 0. && 0. <= t2)
-                    || (t1 <= 1. && 1. <=t2)) {
+                    || (t1 <= 1. && 1. <= t2)) {
                 totalDamage += bullet.damage;
             }
         }
@@ -561,6 +581,10 @@ public strictfp class RobotPlayer {
             return false;
         }
 
+        // try dodging. if there are no bullets to dodge, just move normally
+        if(tryDodgeBulletsInDirection(maxBytecodes, rc.getLocation().directionTo(target.getLocation()))){
+            return true;
+        }
         return tryMoveTo(target.getLocation(), maxBytecodes);
     }
 
@@ -595,15 +619,15 @@ public strictfp class RobotPlayer {
             Direction dir = rc.getLocation().directionTo(bestTarget.location);
             double dist = rc.getLocation().distanceTo(bestTarget.location);
             // determine best kind of shot to fire
-            if(enemiesInSight.length > 3*alliesInSignt.length && rc.canFirePentadShot()){
+            if (enemiesInSight.length > 3 * alliesInSignt.length && rc.canFirePentadShot()) {
                 rc.firePentadShot(dir);
             } else {
                 double projectedAngle = StrictMath.asin(bestTarget.type.bodyRadius / dist);
-                if(projectedAngle >= GameConstants.PENTAD_SPREAD_DEGREES*2
-                        && rc.canFirePentadShot()){
+                if (projectedAngle >= GameConstants.PENTAD_SPREAD_DEGREES * 2
+                        && rc.canFirePentadShot()) {
                     rc.firePentadShot(dir);
-                } else if(projectedAngle >= GameConstants.TRIAD_SPREAD_DEGREES
-                        && rc.canFireTriadShot()){
+                } else if (projectedAngle >= GameConstants.TRIAD_SPREAD_DEGREES
+                        && rc.canFireTriadShot()) {
                     rc.fireTriadShot(dir);
                 } else {
                     rc.fireSingleShot(dir);
