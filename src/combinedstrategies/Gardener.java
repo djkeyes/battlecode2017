@@ -267,7 +267,7 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
         } else {
             boolean needDefences = needDefences();
             boolean canAddTree = canAddNewTree();
-            if (needDefences || !canAddTree) {
+            if (needDefences || (!canAddTree && Messaging.currentStrategy == Messaging.MACRO_ARMY_STRATEGY)) {
                 shouldBuildTree = false;
                 if (numUnitsBuilt < 2 || numUnitsBuilt % 2 == 1) {
                     typeToBuild = RobotType.LUMBERJACK;
@@ -277,10 +277,10 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
             } else if (canAddTree) {
                 shouldBuildTree = true;
                 typeToBuild = null;
-            } /*else {
+            } else {
                 shouldBuildTree = false;
                 typeToBuild = null;
-            }*/
+            }
         }
     }
 

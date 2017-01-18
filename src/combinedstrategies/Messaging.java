@@ -4,7 +4,8 @@ import battlecode.common.GameActionException;
 
 public strictfp class Messaging extends RobotPlayer {
 
-    static final int TURNS_BETWEEN_COUNTS = 5;
+    // CHANNEL ASSIGNMENTS
+
     static final int LAST_COUNT_UPDATE_CHANNEL = 0;
     static final int ARCHON_COUNT_CHANNEL = 1;
     static final int GARDENER_COUNT_CHANNEL = 2;
@@ -17,6 +18,14 @@ public strictfp class Messaging extends RobotPlayer {
     static final int MAXED_GARDENER_COUNT_CHANNEL = 10;
     static final int TOTAL_TREE_INCOME_CHANNEL = 11;
 
+
+    // overarching game strategy
+    static final int STRATEGY_CHANNEL = 20;
+
+    /********************************************************************/
+
+    static final int TURNS_BETWEEN_COUNTS = 5;
+
     static int archonCount = 0;
     static int gardenerCount = 0;
     static int lumberjackCount = 0;
@@ -26,6 +35,13 @@ public strictfp class Messaging extends RobotPlayer {
 
     static int maxedGardenerCount = 0;
     static float totalTreeIncome = 0;
+
+    // possible strategies
+    // TODO: any more we could implement? maybe a super-aggressive/low-econ rush? or maybe use tanks somehow?
+    static final int MACRO_ARMY_STRATEGY = 0;
+    static final int VP_WIN_STRATEGY = 1;
+    static int currentStrategy;
+
 
     static void tryGetUnitCounts() throws GameActionException {
         // Periodically, all counts are reset to track robot deaths.
@@ -175,6 +191,16 @@ public strictfp class Messaging extends RobotPlayer {
      */
     static void reportBuiltTank() throws GameActionException {
         rc.broadcast(TANK_COUNT_CHANNEL, tankCount + 1);
+    }
+
+
+    static void setStrategy(int strategy) throws GameActionException {
+        currentStrategy = strategy;
+        rc.broadcast(STRATEGY_CHANNEL, strategy);
+    }
+
+    static void readStrategy() throws GameActionException {
+        currentStrategy = rc.readBroadcast(STRATEGY_CHANNEL);
     }
 
 }

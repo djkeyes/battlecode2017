@@ -6,10 +6,6 @@ import java.util.Random;
 
 public strictfp class RobotPlayer {
 
-    // TODO: which strategy is better: maintain < 200 (for bonus income) or exceed 200 (so we have more leeway
-    // for constructing new units / shooting bullets)?
-    static final boolean ATTEMPT_VP_WIN = false;
-
     static RobotController rc;
     static RobotType type;
     static RobotHandler handler;
@@ -78,6 +74,8 @@ public strictfp class RobotPlayer {
         while (true) {
             updateNearby();
             Messaging.tryGetUnitCounts();
+            Messaging.readStrategy();
+            determineStrategy();
             handler.onLoop();
             tryShakeNearby();
             donateExcessVictoryPoints();
@@ -248,10 +246,18 @@ public strictfp class RobotPlayer {
         } else if (rc.getRoundNum() > rc.getRoundLimit() - 2) {
             int roundedBullets = (int) (bullets / GameConstants.BULLET_EXCHANGE_RATE) * GameConstants.BULLET_EXCHANGE_RATE;
             rc.donate(roundedBullets);
-        } else if (ATTEMPT_VP_WIN && rc.getTeamBullets() >= 100f + GameConstants.BULLET_EXCHANGE_RATE) {
+        } else if (Messaging.currentStrategy == Messaging.VP_WIN_STRATEGY
+                && bullets >= 100f + GameConstants.BULLET_EXCHANGE_RATE) {
             // maintain at least 100
-            float excess = rc.getTeamBullets() - 100f;
+            float excess = bullets - 100f;
             int roundedBullets = (int) (excess / GameConstants.BULLET_EXCHANGE_RATE) * GameConstants.BULLET_EXCHANGE_RATE;
+            rc.donate(roundedBullets);
+        } else if (Messaging.currentStrategy == Messaging.VP_WIN_STRATEGY
+                && bullets >= GameConstants.BULLET_EXCHANGE_RATE
+                && Gardener.moreEfficientToNotBuildTree()) {
+            // if we're so close that we don't need new trees, stop saving any money
+            int roundedBullets = (int) (bullets / GameConstants.BULLET_EXCHANGE_RATE) * GameConstants
+                    .BULLET_EXCHANGE_RATE;
             rc.donate(roundedBullets);
         }
     }
@@ -645,12 +651,29 @@ public strictfp class RobotPlayer {
         // -distance / dodgeabililty
         // -clusters of enemies
 
-        // for now, let's use -health*dist^3*stride
+        // for now, let's use -health*dist^2*stride*body
         // health for the obvious reason of attacking the weakest
         // dist^2 * stride * body to estimate dodgeability. dodgeability is super important.
         // (minus sign, just to make it max instead of min)
         float score = -enemy.getHealth() * rc.getLocation().distanceSquaredTo(enemy.getLocation())
                 * enemy.type.strideRadius * enemy.type.bodyRadius;
         return score;
+    }
+
+    static void determineStrategy() throws GameActionException {
+        // TODO: on very large maps (map size doesn't matter so much as inter-archon distance), turtlebot does very
+        // well. So we should check that, and avoid rushing if that's the case.
+
+        // on some maps, we make a yuuuuuge army, but don't really use it (due to bad pathing, cluttering, etc)
+        // as a result, detect if our army is getting pretty big, and just go for VP win
+        float totalArmyValue = Messaging.scoutCount * RobotType.SCOUT.bulletCost
+                + Messaging.soldierCount * RobotType.SOLDIER.bulletCost
+                + Messaging.tankCount * RobotType.TANK.bulletCost
+                + Messaging.lumberjackCount * RobotType.LUMBERJACK.bulletCost;
+        if (Messaging.currentStrategy == Messaging.MACRO_ARMY_STRATEGY
+                && totalArmyValue >= GameConstants.VICTORY_POINTS_TO_WIN * GameConstants.BULLET_EXCHANGE_RATE) {
+            // change strategy
+            Messaging.setStrategy(Messaging.VP_WIN_STRATEGY);
+        }
     }
 }
