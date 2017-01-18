@@ -162,21 +162,10 @@ public class Lumberjack extends RobotPlayer implements RobotHandler {
             }
         }
 
-
         // to risky to do AOE, but any enemy trees nearby?
         if (weakestEnemyTree != null) {
             rc.chop(weakestEnemyTree.getID());
             return true;
-        }
-        TreeInfo[] neutralTrees = rc.senseNearbyTrees(type.bodyRadius + GameConstants.LUMBERJACK_STRIKE_RADIUS,
-                Team.NEUTRAL);
-        // any neutral trees nearby?
-        if (neutralTrees.length > 0) {
-            TreeInfo weakestNeutralTree = getWeakestTree(neutralTrees);
-            if (weakestNeutralTree != null) {
-                rc.chop(weakestNeutralTree.getID());
-                return true;
-            }
         }
 
         return false;

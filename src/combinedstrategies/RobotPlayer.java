@@ -422,7 +422,7 @@ public strictfp class RobotPlayer {
         MapLocation[] archonLocs = rc.getInitialArchonLocations(them);
         // target each one in order
 
-        int idx = (rc.getRoundNum() / 300) % archonLocs.length;
+        int idx = (rc.getRoundNum() / 200) % archonLocs.length;
         return tryMoveTo(archonLocs[idx], maxBytecodes);
     }
 
@@ -431,9 +431,7 @@ public strictfp class RobotPlayer {
         // since we're melee, just move toward an enemy
         // preferably one that can't outrun us
 
-        RobotInfo[] enemies = rc.senseNearbyRobots(-1, them);
-
-        if (enemies.length == 0) {
+        if (enemiesInSight.length == 0) {
             return false;
         }
 
@@ -441,7 +439,7 @@ public strictfp class RobotPlayer {
         RobotInfo closestFastEnemy = null;
         float slowEnemyDist = Float.MAX_VALUE;
         float fastEnemyDist = Float.MAX_VALUE;
-        for (RobotInfo enemy : enemies) {
+        for (RobotInfo enemy : enemiesInSight) {
             float dist = rc.getLocation().distanceTo(enemy.getLocation());
             if (enemy.getType().strideRadius > type.strideRadius) {
                 if (dist < fastEnemyDist) {
