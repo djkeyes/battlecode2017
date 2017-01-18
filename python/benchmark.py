@@ -12,8 +12,9 @@ src_dir = './src/'
 # benchmarks, in the format (package name, commit hash, debug params)
 # (use a singleton list if no params to try)
 benchmarks = [
-    ('helloworld', '0b456be39617887ecb815b18ff79dc8d855a2917', ['']),
-    ('player3_halloworld', '5c92b39b75e0cf170715749faa8eed551240c2d7', ['']),
+    ('helloworld', 'e7f2931e5463977f9cde05e7f8893fe1a696d12e', ['']),
+    ('player3_halloworld', 'e7f2931e5463977f9cde05e7f8893fe1a696d12e', ['']),
+    ('turtlebot', 'e7f2931e5463977f9cde05e7f8893fe1a696d12e', ['']),
     ('noop', '9f7e20825181e1d8fd0b3049414ffeae78a41993', [''])
 ]
 
