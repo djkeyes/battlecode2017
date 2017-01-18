@@ -1,9 +1,6 @@
 package combinedstrategies;
 
-import battlecode.common.Direction;
 import battlecode.common.GameActionException;
-import battlecode.common.GameConstants;
-import battlecode.common.RobotInfo;
 
 public class Soldier extends RobotPlayer implements RobotHandler {
 

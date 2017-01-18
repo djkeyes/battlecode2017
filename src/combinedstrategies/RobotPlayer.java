@@ -112,10 +112,11 @@ public strictfp class RobotPlayer {
         alliesInSignt = rc.senseNearbyRobots(type.sensorRadius, us);
     }
 
-    static boolean tryDodgeBullets() {
+    static boolean tryDodgeBullets() throws GameActionException {
         // TODO
         return false;
     }
+
 
     static void donateExcessVictoryPoints() throws GameActionException {
         if (rc.getRoundNum() < 20) {
@@ -246,7 +247,7 @@ public strictfp class RobotPlayer {
 
             theta = maxTheta * (2. * gen.nextDouble() - 1.);
             r = gen.nextDouble() * (1. - minR) + minR;
-            MapLocation next = start.add((float) theta, (float) r);
+            MapLocation next = start.add((float) theta, (float) r * type.strideRadius);
             float dist = target.distanceTo(next);
             if (dist < minDist) {
                 if (rc.canMove(next)) {

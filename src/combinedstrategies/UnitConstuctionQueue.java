@@ -2,9 +2,6 @@ package combinedstrategies;
 
 import battlecode.common.RobotType;
 
-import java.lang.reflect.Array;
-import java.util.Arrays;
-
 /**
  * Manage a list of units that have recently been built by the current robot.
  * <p>
