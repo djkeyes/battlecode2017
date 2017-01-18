@@ -11,8 +11,8 @@ public class Soldier extends RobotPlayer implements RobotHandler {
 
     @Override
     public void onLoop() throws GameActionException {
-        if (!tryDodgeBullets()) {
-            if(!tryMoveTowardEnemy(6000)) {
+        if (!tryDodgeBullets(7000)) {
+            if(!tryMoveTowardEnemy(7500)) {
                 tryMoveTowardEnemyArchons(8000);
             }
         }

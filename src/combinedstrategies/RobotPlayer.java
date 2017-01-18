@@ -112,9 +112,106 @@ public strictfp class RobotPlayer {
         alliesInSignt = rc.senseNearbyRobots(type.sensorRadius, us);
     }
 
-    static boolean tryDodgeBullets() throws GameActionException {
-        // TODO
-        return false;
+    static boolean tryDodgeBullets(int maxBytecodes) throws GameActionException {
+        // in the worse case, we could move one stride. then a bullet at highest speed could strike our body.
+        float epsilon = 0.001f;
+        float maxBulletDist = type.strideRadius + type.bodyRadius + RobotType.TANK.bulletSpeed + epsilon;
+        BulletInfo[] possiblyRelevantBullets = rc.senseNearbyBullets();
+        if(possiblyRelevantBullets.length == 0){
+            return false;
+        }
+        MapLocation myLoc = rc.getLocation();
+
+        // only pick the relevant ones--these actually intersect the circle of radius maxBulletDist
+        BulletInfo[] relevantBullets = new BulletInfo[possiblyRelevantBullets.length];
+        int numRelevantBullets = 0;
+        for(int i=0; i < possiblyRelevantBullets.length; i++){
+            BulletInfo bullet = possiblyRelevantBullets[i];
+
+            Direction dir = myLoc.directionTo(bullet.location);
+            double dist = myLoc.distanceTo(bullet.location);
+
+            double a = bullet.speed*bullet.speed;
+            double b = 2. * StrictMath.cos(bullet.dir.radiansBetween(dir)) * dist * bullet.speed;
+            double c = dist*dist - maxBulletDist*maxBulletDist;
+
+            double discr = b*b - 4.*a*c;
+            if (discr <= 0) {
+                // no intersection (ignoring grazing)
+                continue;
+            }
+            discr = StrictMath.sqrt(discr);
+
+            double t1 = (-b - discr)/(2.*a);
+            double t2 = (-b + discr)/(2.*a);
+            if ((t1 <= 0. && 0. <= t2)
+                    || (t1 <= 1. && 1. <=t2)) {
+                // actually has an intersection
+                relevantBullets[numRelevantBullets++] = bullet;
+            }
+        }
+
+        if(numRelevantBullets == 0){
+            return false;
+        }
+
+        // now attempt to move
+
+        // try several possible locations, and store the one incurs the least damage.
+        // first, see if not moving helps
+
+        double body = type.bodyRadius + epsilon;
+        float minDamage = countDamageFromBullets(myLoc, body, relevantBullets, numRelevantBullets);
+        MapLocation bestLocation = myLoc;
+
+        double theta;
+        float r = type.strideRadius;
+        while (minDamage > 0 && Clock.getBytecodeNum() < maxBytecodes) {
+            // uniformly sample edges of stride space
+            // we could also sample the whole circle, but counting bullets is so costly that we usually only get 10
+            // or so iterations in.
+            theta = 2.0 * gen.nextDouble();
+            MapLocation next = myLoc.add((float) theta, r);
+            if(rc.canMove(next)){
+                float damage = countDamageFromBullets(next, body, relevantBullets, numRelevantBullets);
+                if(damage < minDamage){
+                    minDamage = damage;
+                    bestLocation = next;
+                }
+            }
+        }
+
+        rc.move(bestLocation);
+        return true;
+    }
+    static float countDamageFromBullets(MapLocation loc, double bodyRadius, BulletInfo[] bullets, int
+            numRelevantBullets) {
+        float totalDamage = 0f;
+        for (int i = 0; i < numRelevantBullets; i++) {
+            BulletInfo bullet = bullets[i];
+
+            Direction dir = loc.directionTo(bullet.location);
+            double dist = loc.distanceTo(bullet.location);
+
+            double a = bullet.speed * bullet.speed;
+            double b = 2. * StrictMath.cos(bullet.dir.radiansBetween(dir)) * dist * bullet.speed;
+            double c = dist * dist - bodyRadius * bodyRadius;
+
+            double discr = b * b - 4. * a * c;
+            if (discr <= 0) {
+                // no intersection (ignoring grazing)
+                continue;
+            }
+            discr = StrictMath.sqrt(discr);
+
+            double t1 = (-b - discr) / (2. * a);
+            double t2 = (-b + discr) / (2. * a);
+            if ((t1 <= 0. && 0. <= t2)
+                    || (t1 <= 1. && 1. <=t2)) {
+                totalDamage += bullet.damage;
+            }
+        }
+        return totalDamage;
     }
 
 
