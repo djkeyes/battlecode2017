@@ -52,7 +52,7 @@ public class Lumberjack extends RobotPlayer implements RobotHandler {
     @Override
     public void reportUnitCount() throws GameActionException {
         if (Messaging.shouldSendHeartbeat()) {
-            Messaging.sendHeartbeatSignal(0, 0, 1, 0, 0, 0, 0, 0f);
+            Messaging.sendHeartbeatSignal(0, 0, 1, 0, 0, 0, 0, 0f,0);
         }
     }
 

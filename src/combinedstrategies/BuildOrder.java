@@ -14,28 +14,23 @@ public class BuildOrder extends RobotPlayer{
 	};
 	
 	static RobotType[] ECONOMIC_INITIAL_BUILD_ORDER = {
-			RobotType.GARDENER,null,RobotType.SOLDIER,null,RobotType.SCOUT
+			RobotType.GARDENER,null,RobotType.SOLDIER,null,RobotType.SCOUT, null, RobotType.LUMBERJACK
 	};
 	
 	static RobotType[] InitialBuildOrder = null; 
     static boolean shouldFollowInitialBuildOrder(){
-        return rc.getRoundNum() < 50;
+        return rc.getRoundNum() < 100;
     }
 
     /**
      * @return the next robot type to build, or null if a tree should be built
      */
     static RobotType nextToBuild() {
-        // currently: Ga -> Sc -> So -> trees
-        // a better strategy might be:
-        // Ga -> tree -> So -> tree -> Sc
-        // or
-        // Ga -> tree -> So -> Sc
-        // since that is more economic, and gives the scout a later-execution bonus
-        // TODO: rewrite this class to make testing easier
-    	InitialBuildOrder = AGGRESIVE_INITIAL_BUILD_ORDER;
-    	if (Messaging.unitBuiltCount < InitialBuildOrder.length){
-    		return InitialBuildOrder[Messaging.unitBuiltCount];
+        // currently: Ga -> Sc -> Sc -> So -> tree -> LJ for rush-friendly map
+    	// economic 
+    	InitialBuildOrder = ECONOMIC_INITIAL_BUILD_ORDER;
+    	if (Messaging.itemBuiltCount < InitialBuildOrder.length){
+    		return InitialBuildOrder[Messaging.itemBuiltCount];
     	}
     	else {
     		return null;

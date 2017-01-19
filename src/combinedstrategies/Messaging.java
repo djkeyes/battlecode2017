@@ -13,7 +13,7 @@ public strictfp class Messaging extends RobotPlayer {
     static final int SCOUT_COUNT_CHANNEL = 4;
     static final int SOLDIER_COUNT_CHANNEL = 5;
     static final int TANK_COUNT_CHANNEL = 6;
-    
+    static final int TREE_COUNT_CHANNEL = 7;
     // channels for map geometry
     static final int MAP_Y_LOWERLIMIT_CHANNEL=20;
     static final int MAP_Y_UPPERLIMIT_CHANNEL=21;
@@ -38,9 +38,10 @@ public strictfp class Messaging extends RobotPlayer {
     static int scoutCount = 0;
     static int soldierCount = 0;
     static int tankCount = 0;
-    static int unitBuiltCount = 0;
     static int maxedGardenerCount = 0;
     static float totalTreeIncome = 0;
+    static int treeCount = 0;
+    static int itemBuiltCount = 0; // Including units built and tree planted
 
     static int lowerLimitX =0;
     static int lowerLimitY =0;
@@ -87,11 +88,12 @@ public strictfp class Messaging extends RobotPlayer {
         tankCount = rc.readBroadcast(TANK_COUNT_CHANNEL);
         maxedGardenerCount = rc.readBroadcast(MAXED_GARDENER_COUNT_CHANNEL);
         int encodedTreeIncome = rc.readBroadcast(TOTAL_TREE_INCOME_CHANNEL);
+        treeCount = rc.readBroadcast(TREE_COUNT_CHANNEL);
         totalTreeIncome = Float.intBitsToFloat(encodedTreeIncome);
-        unitBuiltCount = gardenerCount + lumberjackCount + scoutCount + soldierCount + tankCount;
-//        System.out.printf("[A: %d, G: %d, L: %d, Sct: %d, Sdr: %d, T: %d, MaxedG: %d, Inc: %.4f]\n",
-//                archonCount, gardenerCount, lumberjackCount, scoutCount, soldierCount, tankCount, maxedGardenerCount,
-//                totalTreeIncome);
+        itemBuiltCount = gardenerCount + lumberjackCount + scoutCount + soldierCount + tankCount+ treeCount;
+        System.out.printf("[A: %d, G: %d, L: %d, Sct: %d, Sdr: %d, T: %d, MaxedG: %d, Inc: %.4f, Tr: %d]\n",
+                archonCount, gardenerCount, lumberjackCount, scoutCount, soldierCount, tankCount, maxedGardenerCount,
+                totalTreeIncome,treeCount);
     }
 
     static boolean shouldSendHeartbeat() {
@@ -100,7 +102,8 @@ public strictfp class Messaging extends RobotPlayer {
     }
     
     static void sendHeartbeatSignal(int numArchons, int numGardeners, int numLumberjacks, int numScouts,
-                                    int numSoldiers, int numTanks, int numMaxedGardeners, float treeIncome)
+                                    int numSoldiers, int numTanks, int numMaxedGardeners, float treeIncome, 
+                                    int numTrees)
             throws GameActionException {
         // TODO: a common use case is to have exactly 1 non-zero argument. maybe we should separate this into n
         // separate methods?
@@ -120,6 +123,7 @@ public strictfp class Messaging extends RobotPlayer {
             rc.broadcast(MAXED_GARDENER_COUNT_CHANNEL, numMaxedGardeners);
             int encodedIncome = Float.floatToIntBits(treeIncome);
             rc.broadcast(TOTAL_TREE_INCOME_CHANNEL, encodedIncome);
+            rc.broadcast(TREE_COUNT_CHANNEL, numTrees);
         } else {
             // otherwise send only as necessary
             if (numArchons > 0) {
@@ -154,7 +158,11 @@ public strictfp class Messaging extends RobotPlayer {
                 int encodedTreeIncome = rc.readBroadcast(TOTAL_TREE_INCOME_CHANNEL);
                 treeIncome += Float.intBitsToFloat(encodedTreeIncome);
                 int encodedIncome = Float.floatToIntBits(treeIncome);
-                rc.broadcast(TOTAL_TREE_INCOME_CHANNEL, encodedIncome);
+                rc.broadcast(TOTAL_TREE_INCOME_CHANNEL, encodedIncome);                
+            }
+            if (numTrees > 0) {
+            	numTrees += rc.readBroadcast(TREE_COUNT_CHANNEL);
+            	rc.broadcast(TREE_COUNT_CHANNEL, numTrees);
             }
         }
     }
@@ -219,6 +227,7 @@ public strictfp class Messaging extends RobotPlayer {
     static void reportBuiltTank() throws GameActionException {
         rc.broadcast(TANK_COUNT_CHANNEL, tankCount + 1);
     }
+    
 
 
     static void setStrategy(int strategy) throws GameActionException {
