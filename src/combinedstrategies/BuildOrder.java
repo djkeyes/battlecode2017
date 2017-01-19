@@ -1,6 +1,5 @@
 package combinedstrategies;
 
-
 import battlecode.common.RobotType;
 
 public class BuildOrder extends RobotPlayer{
@@ -10,6 +9,15 @@ public class BuildOrder extends RobotPlayer{
      * of building adaptively.
      * @return true if nextToBuild() to be called
      */
+	static RobotType[] AGGRESIVE_INITIAL_BUILD_ORDER = {
+			RobotType.GARDENER,RobotType.SCOUT,RobotType.SCOUT,RobotType.SOLDIER,null,RobotType.LUMBERJACK
+	};
+	
+	static RobotType[] ECONOMIC_INITIAL_BUILD_ORDER = {
+			RobotType.GARDENER,null,RobotType.SOLDIER,null,RobotType.SCOUT
+	};
+	
+	static RobotType[] InitialBuildOrder = null; 
     static boolean shouldFollowInitialBuildOrder(){
         return rc.getRoundNum() < 50;
     }
@@ -25,15 +33,13 @@ public class BuildOrder extends RobotPlayer{
         // Ga -> tree -> So -> Sc
         // since that is more economic, and gives the scout a later-execution bonus
         // TODO: rewrite this class to make testing easier
-        if(Messaging.gardenerCount == 0){
-            return RobotType.GARDENER;
-        } else if(Messaging.scoutCount <= 1){
-            return RobotType.SCOUT;
-        } else if(Messaging.soldierCount == 0){
-            return RobotType.SOLDIER;
-        } else {
-            return null;
-        }
-    }
+    	InitialBuildOrder = AGGRESIVE_INITIAL_BUILD_ORDER;
+    	if (Messaging.unitBuiltCount < InitialBuildOrder.length){
+    		return InitialBuildOrder[Messaging.unitBuiltCount];
+    	}
+    	else {
+    		return null;
+    		}    
+    	}
 
 }

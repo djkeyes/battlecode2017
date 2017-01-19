@@ -38,7 +38,7 @@ public strictfp class Messaging extends RobotPlayer {
     static int scoutCount = 0;
     static int soldierCount = 0;
     static int tankCount = 0;
-
+    static int unitBuiltCount = 0;
     static int maxedGardenerCount = 0;
     static float totalTreeIncome = 0;
 
@@ -50,6 +50,7 @@ public strictfp class Messaging extends RobotPlayer {
     // TODO: any more we could implement? maybe a super-aggressive/low-econ rush? or maybe use tanks somehow?
     static final int MACRO_ARMY_STRATEGY = 0;
     static final int VP_WIN_STRATEGY = 1;
+    static final int RUSH_STRATEGY = 2;
     static int currentStrategy;
 
 
@@ -87,7 +88,7 @@ public strictfp class Messaging extends RobotPlayer {
         maxedGardenerCount = rc.readBroadcast(MAXED_GARDENER_COUNT_CHANNEL);
         int encodedTreeIncome = rc.readBroadcast(TOTAL_TREE_INCOME_CHANNEL);
         totalTreeIncome = Float.intBitsToFloat(encodedTreeIncome);
-
+        unitBuiltCount = gardenerCount + lumberjackCount + scoutCount + soldierCount + tankCount;
 //        System.out.printf("[A: %d, G: %d, L: %d, Sct: %d, Sdr: %d, T: %d, MaxedG: %d, Inc: %.4f]\n",
 //                archonCount, gardenerCount, lumberjackCount, scoutCount, soldierCount, tankCount, maxedGardenerCount,
 //                totalTreeIncome);
