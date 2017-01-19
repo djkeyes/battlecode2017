@@ -19,7 +19,7 @@ public class BuildOrder extends RobotPlayer{
 	
 	static RobotType[] InitialBuildOrder = null; 
     static boolean shouldFollowInitialBuildOrder(){
-        return rc.getRoundNum() < 100;
+        return rc.getRoundNum() < 150;
     }
 
     /**
@@ -28,7 +28,7 @@ public class BuildOrder extends RobotPlayer{
     static RobotType nextToBuild() {
         // currently: Ga -> Sc -> Sc -> So -> tree -> LJ for rush-friendly map
     	// economic 
-    	InitialBuildOrder = ECONOMIC_INITIAL_BUILD_ORDER;
+    	InitialBuildOrder = AGGRESIVE_INITIAL_BUILD_ORDER;
     	if (Messaging.itemBuiltCount < InitialBuildOrder.length){
     		return InitialBuildOrder[Messaging.itemBuiltCount];
     	}

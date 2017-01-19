@@ -40,7 +40,9 @@ public class Scout extends RobotPlayer implements RobotHandler {
 	        } 
 	        else if (strategy == 1){
 	        	System.out.println("I explore the map!");
-	        	
+	        	if (nextTargetLocation!= null){
+	        		System.out.println("X:"+nextTargetLocation.x + " y:"+ nextTargetLocation.y);
+	        	}
 	        	exploreMap(); // Explores around the map and pick up bullets from trees
 		        //rc.setIndicatorDot(my_loc, 0, 255, 0); // debug
 	        }
@@ -92,7 +94,7 @@ public class Scout extends RobotPlayer implements RobotHandler {
 		static void exploreMap() throws GameActionException {
 			// Major goal of this function is to find out the size of the map and broadcast
 			// And pick up bullets along the way
-			senseAndBroadcastGardener();
+			// senseAndBroadcastGardener();
 
 			
 			if (Messaging.lowerLimitX == 0){
@@ -140,11 +142,8 @@ public class Scout extends RobotPlayer implements RobotHandler {
 				
 				tryMoveTargetLocationScout(nextTargetLocation);
 				
-			}
-			
-			
+			}						
 		}
-
 
 		static void senseAndBroadcastGardener() throws GameActionException {
 			for (RobotInfo robotSpotted : enemiesInSight){
@@ -180,8 +179,8 @@ public class Scout extends RobotPlayer implements RobotHandler {
 				}
 			}
 			if (!foundTree){ // No trees, move towards target location
-				
-				tryMove(my_loc.directionTo(myNextTargetLocation),20,5); // continue exploring the map
+				tryMoveTo(myNextTargetLocation,6000);
+				// continue exploring the map
 				if (my_loc.isWithinDistance(myNextTargetLocation, SCOUTEXPLORETHRESHOLD)){
 					nextTargetLocation = generateNewTargetLocation(myNextTargetLocation);
 					
@@ -192,13 +191,16 @@ public class Scout extends RobotPlayer implements RobotHandler {
 		static float CLOSETOENEMYTHRESHOLD = 9;
 		static int oddRoute = 0;
 		static Direction[] EASTandWEST = {Direction.WEST,Direction.EAST};
+		
 		static MapLocation generateNewTargetLocation(MapLocation myCurTargetLocation) {
 			// Create next grid point as next target
 			MapLocation myNextTargetLocation=myCurTargetLocation;
 			if (scoutID == 1){ // Start at lower left 
-				//System.out.println("Find out next position");
+				System.out.println("Find out next position");
 				Direction curXdir = EASTandWEST[(scoutID+oddRoute) %2];
+				System.out.println("OddRout Counter: " +oddRoute + "scoutID" + scoutID + gridSize);
 				while (isValidTargetLoc(myNextTargetLocation.add(curXdir,gridSize*2)) ){
+					System.out.println("Added");
 					myNextTargetLocation=myNextTargetLocation.add(curXdir,gridSize*2);
 					if (!myNextTargetLocation.isWithinDistance(
 							rc.getInitialArchonLocations(them)[0],CLOSETOENEMYTHRESHOLD)){
@@ -215,9 +217,9 @@ public class Scout extends RobotPlayer implements RobotHandler {
 					}
 					return myNextTargetLocation;
 				}
-				else { // Exploration done, change states
-					strategy = 2;
-					return new MapLocation(0,0);
+				else { // Exploration done, change states TODO ERROR here
+					//strategy = 2;
+					return myCurTargetLocation.add(curXdir,gridSize*2);
 				}	
 			}
 			else {  // Start at upper Right
@@ -256,48 +258,47 @@ public class Scout extends RobotPlayer implements RobotHandler {
 			return (newloc.x <= Messaging.upperLimitX-gridSize) && (newloc.x >= Messaging.lowerLimitX+gridSize)
 					&& (newloc.y <= Messaging.upperLimitY-gridSize) && (newloc.y >= Messaging.lowerLimitY+gridSize);
 		}
-		static float CLOSETOGARDNER = (float)4;
+		static float CLOSETOGARDNER = (float)5;
+		static float ENOUGHBULLETS = (float) 100;
 		static void tryHarassGardener() throws GameActionException {
 			// MOVING PART
-			boolean treeDodged = tryTreeDodge();
-			if (!treeDodged){ // No dodging necessary
+
+			if (!tryTreeDodge()){ // No dodging necessary
 		    	if (myOpponentID != 0 && rc.canSenseRobot(myOpponentID)){ // found opposing gardener
 		    		if (myTreeID!= 0 && rc.canSenseTree(myTreeID)){
 		    			tryMoveIntoTreeCloseToGardner(); // go up the tree
 		    		}
 		    		else {
 		    			tryAssignTreeID(); // find another tree
-		    		}
-			
-		
-		
+		    			tryMoveTo(rc.senseRobot(myOpponentID).getLocation(),6000);
+		    		}		
 		    	}
 		    	else{ // No opponent ID being registered
-		    		
 		    		if (enemiesInSight.length == 0){
-		    			
 		    		}
 		    		else{
 		    			for (RobotInfo robotSpotted : enemiesInSight){
 		    	    		if (robotSpotted.getType() == RobotType.GARDENER){
 		    	    			myOpponentID = robotSpotted.getID(); // select target
-		    	    			tryMove(new Direction(my_loc,robotSpotted.getLocation()),10,5);
+		    	    			myTreeID = 0; // find a new tree for the new target
+		    	    			tryMoveTo(robotSpotted.getLocation(),6000);
 		    	    			// Get as close to enemy gardener as possible
-		    	    			return;
+		    	    			break;
 		    	    		}
 		    	    	}
 		    		}
-		    		tryFindEnemyFarmers();
+		    		if (!rc.hasMoved()){
+		    			tryFindEnemyFarmers();
 		    		
-		
+		    		}
 		    	}
 			}
 	    	// ATTACKING PART
-	    	//System.out.println("my_loc);
 			if (//!(isPathToRobotObstructed(rc.senseRobot(myOpponentID))) &&
 					myOpponentID != 0 && rc.canSenseRobot(myOpponentID) &&
 					rc.canFireSingleShot() && 
-					my_loc.distanceTo(rc.senseRobot(myOpponentID).getLocation())<= CLOSETOGARDNER *type.bodyRadius){
+					(my_loc.distanceTo(rc.senseRobot(myOpponentID).getLocation())<= CLOSETOGARDNER *type.bodyRadius
+					|| rc.getTeamBullets() > ENOUGHBULLETS)){
 				// Fire shot towards the gardener, if path clear and shots ready and close enough
 				System.out.println("Shot fired towards " + myOpponentID + " i am at tree" + myTreeID);
 				Direction dir = new Direction(my_loc,rc.senseRobot(myOpponentID).getLocation());
@@ -313,7 +314,8 @@ public class Scout extends RobotPlayer implements RobotHandler {
 
 		static void tryFindEnemyFarmers() throws GameActionException {
 			if (rc.readBroadcast(SCOUTFOUNDFARMERXCHANNEL)== 0){
-				tryMoveTowardEnemyArchons(8000); // No enemy spotted, go ahead find someone
+				tryRushTowardEnemyArchons(8000,rc.getID()); // No enemy spotted, go ahead find someone
+				// Use ID as a random seed for going different archon spawning location
 			}
 			else {
 				tryMove(my_loc.directionTo(new MapLocation((float)rc.readBroadcast(SCOUTFOUNDFARMERXCHANNEL),
@@ -346,29 +348,18 @@ public class Scout extends RobotPlayer implements RobotHandler {
 		    	float theta = propagationDirection.radiansBetween(directionToRobot);  	    	
 				if (Math.abs(theta) < Math.PI/3){ // Get the closest bullet that would hit
 					MapLocation dodgingSpot;
-					if (myTreeID != 0 || rc.canSenseTree(myTreeID)){ // if currently spotted a tree
-						System.out.println("myTree ID tree:" + myTreeID);
+					if (myTreeID != 0 && rc.canSenseTree(myTreeID)){ // if currently spotted a tree
 						dodgingSpot= rc.senseTree(myTreeID).getLocation().add(directionToRobot, MINIMUMMOV);
-						System.out.println("Dodge inside tree");
+						if (rc.canMove(dodgingSpot)){
+							rc.move(dodgingSpot);
+							System.out.println("Dodge successful to inside tree");
+							return true;
+						}
 					}
-					else {
-						dodgingSpot = my_loc.add(propagationDirection.rotateLeftDegrees(90),2);
-						System.out.println("Dodge outside tree");
-					}
-					if (rc.canMove(dodgingSpot)){
-						rc.move(dodgingSpot);
-						System.out.println("Dodge successful to wished location");
-						return true;
-					}
-					else{
-						tryMove(propagationDirection.rotateRightDegrees(90),20,3);
-						System.out.println("Dodge successful to wished direction");
-						return true;
-					}
-						
+					
 				}
 	    	}
-	    	return false;
+	    	return tryDodgeBullets(5000); // If tree dodge not possible, try normal dodge
 		}
 
 		static boolean avoidSoldier() throws GameActionException {
@@ -411,40 +402,13 @@ public class Scout extends RobotPlayer implements RobotHandler {
 			}
 			
 		}
+	    static boolean tryRushTowardEnemyArchons(int maxBytecodes, int offset) throws GameActionException {
+	    	// Sometime scout has nothing to attack and stay at one spawning location forever
+	        MapLocation[] archonLocs = rc.getInitialArchonLocations(them);
+	        // target each one in order
 
-
-
-	    
-	    static boolean tryDodge() throws GameActionException {
-	        // jd: actually take bullets into account, for now just dodge the closest one
-	    	
-	    	if (bullets.length >0){
-	    		Direction directionToRobot= null;
-	    		Direction propagationDirection = null;
-	    		float closest = 6;
-	    		BulletInfo bulletincoming = bullets[0];   		
-	    		for (BulletInfo bullet : bullets){
-	    	    	propagationDirection = bullet.dir;
-	    	    	MapLocation bulletLocation = bullet.location;
-	    	    	directionToRobot = bulletLocation.directionTo(my_loc);
-	    	    	float distToRobot = bulletLocation.distanceTo(my_loc);
-	    	    	float theta = propagationDirection.radiansBetween(directionToRobot);  	    	
-	    			if (distToRobot < closest && Math.abs(theta) < Math.PI/3){ // Get the closest bullet
-	    				closest = distToRobot;
-	    				bulletincoming = bullet;
-	    			}
-	    		}
-	    		if (! tryMove(propagationDirection.rotateLeftDegrees(90),20,10)){ // Dodge right and left
-	    			tryMove(propagationDirection.rotateRightDegrees(90),20,10);
-	    		}
-	    		
-	    		return true;
-	    	}
-	    	return false;
-	    	
-
-	    	
+	        int idx = ((rc.getRoundNum() + offset)/ 30) % archonLocs.length;
+	        return tryMoveTo(archonLocs[idx], maxBytecodes);
 	    }
-
 	}
     

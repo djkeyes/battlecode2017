@@ -685,7 +685,8 @@ public strictfp class RobotPlayer {
 		if (Messaging.upperLimitX == 0 || Messaging.upperLimitY == 0||
 				Messaging.lowerLimitX== 0 || Messaging.lowerLimitY == 0){ // Need to Find out the map bound
 			
-			if (rc.onTheMap(rc.getLocation(), type.sensorRadius) == false){ // The edge is seen at the moment
+			if (rc.onTheMap(rc.getLocation(), type.sensorRadius-(float)0.5) == false){ // The edge is seen at the moment
+				
 				for (Direction dir:fourDirections){
 					if (Messaging.upperLimitX != 0 && dir == Direction.EAST) { // Already done
 						continue;
@@ -699,7 +700,7 @@ public strictfp class RobotPlayer {
 					if (Messaging.lowerLimitX!= 0 && dir == Direction.WEST) { // Already done
 						continue;
 					}
-					if (rc.onTheMap(rc.getLocation().add(dir, type.sensorRadius))== false){ // this direction is not inside map
+					if (rc.onTheMap(rc.getLocation().add(dir, type.sensorRadius-(float)(0.25)))== false){ // this direction is not inside map
 						// run binary search to find out the range
 						int lowerbound = 0;
 						int upperbound = (int) type.sensorRadius;
