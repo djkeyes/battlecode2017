@@ -268,10 +268,14 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
             boolean canAddTree = canAddNewTree();
             if (needDefences || (!canAddTree && Messaging.currentStrategy == Messaging.MACRO_ARMY_STRATEGY)) {
                 shouldBuildTree = false;
-                if (numUnitsBuilt < 2 || numUnitsBuilt % 2 == 1) {
+                if (numUnitsBuilt % 2 == 1) {
                     typeToBuild = RobotType.LUMBERJACK;
-                } else {
-                    typeToBuild = RobotType.SOLDIER;
+                } else if (numUnitsBuilt % 12 == 0){
+                	typeToBuild = RobotType.SCOUT; // Just include some Scout to go around
+                    }
+                else {
+                	typeToBuild = RobotType.SOLDIER;
+                    
                 }
             } else if (canAddTree) {
                 shouldBuildTree = true;

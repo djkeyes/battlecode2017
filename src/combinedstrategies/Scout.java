@@ -4,7 +4,7 @@ import battlecode.common.*;
 
 public class Scout extends RobotPlayer implements RobotHandler {
 	
-		static int strategy = 0; // Defining which state the robot is in. 
+		static int strategy = -1; // Defining which state the robot is in. 
 		// 0 for harassing enemiesInSight gardener, 
 		// 1 for scouting around map and pick up bullets, 
 		// 2 for hide and observe at enemy tree
@@ -23,14 +23,17 @@ public class Scout extends RobotPlayer implements RobotHandler {
 
 		@Override
 	    public void init() throws GameActionException {
-
+			// Assign strategy at the beginning of the spawn
+			
 	    }
 
-	    @Override
+
+		@Override
 	    public void onLoop() throws GameActionException {
         	trees = rc.senseNearbyTrees(10);
         	my_loc= rc.getLocation();
         	bullets = rc.senseNearbyBullets(SENSEBULLETRANGE);
+        	decideScoutStrategy();
 	        if (strategy == 0){
 	        	tryHarassGardener(); // Move and attack command
 	        	System.out.println("I harass worker!");
@@ -40,14 +43,12 @@ public class Scout extends RobotPlayer implements RobotHandler {
 	        } 
 	        else if (strategy == 1){
 	        	System.out.println("I explore the map!");
-	        	if (nextTargetLocation!= null){
-	        		System.out.println("X:"+nextTargetLocation.x + " y:"+ nextTargetLocation.y);
-	        	}
+
 	        	exploreMap(); // Explores around the map and pick up bullets from trees
 		        //rc.setIndicatorDot(my_loc, 0, 255, 0); // debug
 	        }
 	        else{
-	        	System.out.println("I observe opponent!");
+	        	System.out.println("I am part of the team!");
 	        	observeOpponent();
 	        	//rc.setIndicatorDot(my_loc, 0, 0, 255); // debug
 	        }
@@ -134,7 +135,7 @@ public class Scout extends RobotPlayer implements RobotHandler {
 						scoutID =2;
 					}
 					else {
-						// Already two scouts
+						//join the army
 						strategy = 2;
 						return;
 					}
@@ -258,19 +259,26 @@ public class Scout extends RobotPlayer implements RobotHandler {
 			return (newloc.x <= Messaging.upperLimitX-gridSize) && (newloc.x >= Messaging.lowerLimitX+gridSize)
 					&& (newloc.y <= Messaging.upperLimitY-gridSize) && (newloc.y >= Messaging.lowerLimitY+gridSize);
 		}
-		static float CLOSETOGARDNER = (float)5;
+		
 		static float ENOUGHBULLETS = (float) 100;
 		static void tryHarassGardener() throws GameActionException {
 			// MOVING PART
-
+			
 			if (!tryTreeDodge()){ // No dodging necessary
 		    	if (myOpponentID != 0 && rc.canSenseRobot(myOpponentID)){ // found opposing gardener
-		    		if (myTreeID!= 0 && rc.canSenseTree(myTreeID)){
+		    		if (myTreeID!= 0 && rc.canSenseTree(myTreeID) && idle < 50 && 
+		    				!rc.isLocationOccupiedByRobot(rc.senseTree(myTreeID).getLocation())){
+		    			rc.setIndicatorLine(rc.getLocation(),rc.senseTree(myTreeID).getLocation(), 0, 255, 0);
+		    			rc.setIndicatorLine(rc.getLocation(),rc.senseRobot(myOpponentID).getLocation(), 255, 0, 0);
 		    			tryMoveIntoTreeCloseToGardner(); // go up the tree
 		    		}
 		    		else {
 		    			tryAssignTreeID(); // find another tree
 		    			tryMoveTo(rc.senseRobot(myOpponentID).getLocation(),6000);
+		    			// TODO Create something like tryMoveTowardsEnemyID
+		    			if (!rc.hasMoved()){
+		    				tryMove(rc.getLocation().directionTo(rc.senseRobot(myOpponentID).getLocation()),20,10);
+		    			}
 		    		}		
 		    	}
 		    	else{ // No opponent ID being registered
@@ -294,15 +302,23 @@ public class Scout extends RobotPlayer implements RobotHandler {
 		    	}
 			}
 	    	// ATTACKING PART
-			if (//!(isPathToRobotObstructed(rc.senseRobot(myOpponentID))) &&
+			if (
 					myOpponentID != 0 && rc.canSenseRobot(myOpponentID) &&
 					rc.canFireSingleShot() && 
-					(my_loc.distanceTo(rc.senseRobot(myOpponentID).getLocation())<= CLOSETOGARDNER *type.bodyRadius
+					(my_loc.distanceTo(rc.senseRobot(myOpponentID).getLocation())<= ENEMYTOTREETHRESHOLD
 					|| rc.getTeamBullets() > ENOUGHBULLETS)){
 				// Fire shot towards the gardener, if path clear and shots ready and close enough
-				System.out.println("Shot fired towards " + myOpponentID + " i am at tree" + myTreeID);
-				Direction dir = new Direction(my_loc,rc.senseRobot(myOpponentID).getLocation());
-				rc.fireSingleShot(dir);
+				if (isPathToRobotFree(rc.senseRobot(myOpponentID))){
+					System.out.println("Shot fired towards " + myOpponentID + " i am at tree" + myTreeID);
+
+					Direction dir = new Direction(my_loc,rc.senseRobot(myOpponentID).getLocation());
+					rc.fireSingleShot(dir);
+					idle --;
+					idle = Math.max(0, idle);
+				}
+				else {
+					idle++; // Picked the bad tree?
+				}
 			} 	
 			
 	    	if (rc.getHealth() < 0.25*type.maxHealth && strategy == 0 && idle<10){ // Lost major part of life
@@ -311,6 +327,19 @@ public class Scout extends RobotPlayer implements RobotHandler {
 	    	
 		}
 
+
+		static boolean isPathToRobotFree(RobotInfo enemy) throws GameActionException {
+			// Check whether the path to enemy robot is free for the farmer harass
+			if (enemy.getLocation().distanceTo(rc.getLocation())< (float) 4* type.bodyRadius){
+				// If not even the smallest unit would fit in here
+				return true;
+			}
+			// For now just check whether the middle point is occupied TODO
+			else return !rc.isLocationOccupied(enemy.getLocation().
+					add(enemy.getLocation().directionTo(rc.getLocation()),
+							enemy.getLocation().distanceTo(rc.getLocation())/2)); 
+			
+		}
 
 		static void tryFindEnemyFarmers() throws GameActionException {
 			if (rc.readBroadcast(SCOUTFOUNDFARMERXCHANNEL)== 0){
@@ -379,7 +408,9 @@ public class Scout extends RobotPlayer implements RobotHandler {
 	            for (TreeInfo tree : trees){
 	            	if (tree.team == them){
 	            		float dis = tree.getLocation().distanceTo(rc.senseRobot(myOpponentID).getLocation());
-	            		if (dis< CLOSETOGARDNER *type.bodyRadius){ // enemy tree close to opponent gardener
+	            		if (dis< ENEMYTOTREETHRESHOLD && 
+	            				!rc.isLocationOccupiedByRobot(tree.getLocation())){ 
+	            			// enemy tree close to opponent gardener and not occupied
 	            			myTreeID = tree.getID();
 	            			return;
 	            		}
@@ -389,13 +420,34 @@ public class Scout extends RobotPlayer implements RobotHandler {
 	    	}
 			
 		}
-
+		static float ENEMYTOTREETHRESHOLD = (float) 5 * type.bodyRadius; 
 		static void tryMoveIntoTreeCloseToGardner() throws GameActionException {
 			// Move to that tree
+			
 			if (myTreeID != 0 && rc.canSenseTree(myTreeID)&& 
 					rc.canSenseLocation((rc.senseTree(myTreeID).getLocation()))&& // TODO weired exception
 					(!rc.isLocationOccupiedByRobot(rc.senseTree(myTreeID).getLocation())
 					|| rc.getLocation()!= rc.senseTree(myTreeID).getLocation())){
+				for (RobotInfo enemy : enemiesInSight){
+					if (enemy.getID() == myOpponentID){
+						break; // others are further away
+					}
+					if (enemy.getType()== RobotType.GARDENER &&
+							enemy.getLocation().distanceTo(rc.senseTree(myTreeID).getLocation()) 
+							< rc.senseTree(myTreeID).getLocation().distanceTo
+									(rc.senseRobot(myOpponentID).getLocation())){
+						myOpponentID = enemy.getID();
+						break;
+					}
+				}
+				if (rc.senseTree(myTreeID).getLocation().
+						distanceTo(rc.senseRobot(myOpponentID).getLocation())>= ENEMYTOTREETHRESHOLD){
+					myTreeID = 0; // If the opponent moves too far away from the hiding tree
+
+					return;
+				}
+					 
+					
 				if (rc.canMove(rc.senseTree(myTreeID).getLocation())){
 					rc.move(rc.senseTree(myTreeID).getLocation());
 				}
@@ -410,5 +462,20 @@ public class Scout extends RobotPlayer implements RobotHandler {
 	        int idx = ((rc.getRoundNum() + offset)/ 30) % archonLocs.length;
 	        return tryMoveTo(archonLocs[idx], maxBytecodes);
 	    }
+	    static void decideScoutStrategy() {
+	    	if (strategy == -1){
+				if (Messaging.scoutCount <= 2){
+					strategy = 0; // early rush, two scouts harass only gardener
+				}
+				else if (Messaging.scoutCount == 3){
+					strategy = 1; // This scout go around the map and pick up stuff
+				}
+				else {
+					strategy = 2; // Part of the army, attack and dodging
+				}	
+	    	}
+			
+		}
+
 	}
     

@@ -115,6 +115,8 @@ public strictfp class RobotPlayer {
     static boolean tryDodgeBullets(int maxBytecodes) throws GameActionException {
         return tryDodgeBulletsInDirection(maxBytecodes, null);
     }
+    
+  
 
     static boolean tryDodgeBulletsInDirection(int maxBytecodes, Direction desiredMovementDir) throws
             GameActionException {

@@ -77,7 +77,7 @@ public strictfp class Messaging extends RobotPlayer {
         if (upperLimitY==0) {
             readMapUpperY();
         }
-        System.out.println(" " +lowerLimitX+upperLimitX+lowerLimitY+upperLimitY);
+        //System.out.println(" " +lowerLimitX+upperLimitX+lowerLimitY+upperLimitY);
     }
 
     static void getUnitCounts() throws GameActionException {
