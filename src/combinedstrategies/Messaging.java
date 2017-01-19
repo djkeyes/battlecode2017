@@ -265,7 +265,7 @@ public strictfp class Messaging extends RobotPlayer {
     }
     static void readMapUpperX() throws GameActionException {
         
-        upperLimitX=rc.readBroadcast(MAP_X_LOWERLIMIT_CHANNEL);
+        upperLimitX=rc.readBroadcast(MAP_X_UPPERLIMIT_CHANNEL);
     	}
 	static void readMapUpperY() throws GameActionException {
     
