@@ -73,6 +73,7 @@ public strictfp class RobotPlayer {
         handler.init();
         while (true) {
             updateNearby();
+            Messaging.tryGetMapSize();
             Messaging.tryGetUnitCounts();
             Messaging.readStrategy();
             determineStrategy();
@@ -80,6 +81,7 @@ public strictfp class RobotPlayer {
             tryShakeNearby();
             donateExcessVictoryPoints();
             handler.reportUnitCount();
+            reportMapAwareness();
             Clock.yield();
         }
     }
@@ -593,7 +595,22 @@ public strictfp class RobotPlayer {
         }
         return tryMoveTo(target.getLocation(), maxBytecodes);
     }
-
+    
+    static void reportMapAwareness() throws GameActionException{
+    	detectMapBoundary();
+    	if (Messaging.lowerLimitX!=0){
+    		Messaging.reportMapLowerX(Messaging.lowerLimitX);
+    	}
+    	if (Messaging.upperLimitX!=0){
+    		Messaging.reportMapUpperX(Messaging.upperLimitX);
+    	}
+    	if (Messaging.lowerLimitY!=0){
+    		Messaging.reportMapLowerY(Messaging.lowerLimitY);
+    	}
+    	if (Messaging.upperLimitY!=0){
+    		Messaging.reportMapUpperY(Messaging.upperLimitY);
+    	}
+    }
 
     static boolean tryAttackEnemy() throws GameActionException {
         if (enemiesInSight.length == 0) {
@@ -660,7 +677,67 @@ public strictfp class RobotPlayer {
                 * enemy.type.strideRadius * enemy.type.bodyRadius;
         return score;
     }
-
+    static void detectMapBoundary() throws GameActionException {
+    	// If robot spots edges of the map, save it 
+		Direction[] fourDirections = {Direction.EAST,Direction.SOUTH,Direction.WEST,Direction.NORTH};
+		
+		// Detect whether the robot is on edge
+		if (Messaging.upperLimitX == 0 || Messaging.upperLimitY == 0||
+				Messaging.lowerLimitX== 0 || Messaging.lowerLimitY == 0){ // Need to Find out the map bound
+			
+			if (rc.onTheMap(rc.getLocation(), type.sensorRadius) == false){ // The edge is seen at the moment
+				for (Direction dir:fourDirections){
+					if (Messaging.upperLimitX != 0 && dir == Direction.EAST) { // Already done
+						continue;
+					}
+					if (Messaging.upperLimitY != 0 && dir == Direction.NORTH) { // Already done
+						continue;
+					}
+					if (Messaging.lowerLimitY != 0 && dir == Direction.SOUTH) { // Already done
+						continue;
+					}
+					if (Messaging.lowerLimitX!= 0 && dir == Direction.WEST) { // Already done
+						continue;
+					}
+					if (rc.onTheMap(rc.getLocation().add(dir, type.sensorRadius))== false){ // this direction is not inside map
+						// run binary search to find out the range
+						int lowerbound = 0;
+						int upperbound = (int) type.sensorRadius;
+						while(lowerbound != upperbound){
+							int mid = (lowerbound+upperbound+1) /2;
+							if (rc.onTheMap(rc.getLocation().add(dir,(float)mid)) == false){
+								upperbound = mid-1;
+							}
+							else {
+								lowerbound = mid;
+							}
+						}
+						if (dir == Direction.EAST){
+							Messaging.upperLimitX = lowerbound+(int)rc.getLocation().x;
+							System.out.println("Find x upper bound "+ (lowerbound+(int)rc.getLocation().x));
+							
+						}
+						else if (dir ==Direction.NORTH){
+							Messaging.upperLimitY = lowerbound+(int)rc.getLocation().y;
+							System.out.println("Find y upper bound "+(lowerbound+(int)rc.getLocation().y));
+							
+						}
+						else if (dir ==Direction.WEST){
+							Messaging.lowerLimitX = -lowerbound+(int)rc.getLocation().x;
+							System.out.println("Find x lower bound "+(-lowerbound+(int)rc.getLocation().x));
+							
+						}
+						else {
+							Messaging.lowerLimitY = -lowerbound+(int)rc.getLocation().y;
+							System.out.println("Find y lower bound "+(-lowerbound+(int)rc.getLocation().y));
+							
+						}
+						
+					}
+				}
+			}
+		}
+    }
     static void determineStrategy() throws GameActionException {
         // TODO: on very large maps (map size doesn't matter so much as inter-archon distance), turtlebot does very
         // well. So we should check that, and avoid rushing if that's the case.

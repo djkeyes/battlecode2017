@@ -15,18 +15,12 @@ public class Scout extends RobotPlayer implements RobotHandler {
 		static MapLocation my_loc = null;
 		static BulletInfo[] bullets = null;
 		static float SENSEBULLETRANGE = 8; // Dont consider bullets far away
-	    static int MAPXLIMITCHANNEL = 105;
-	    static int MAPYLIMITCHANNEL = 106;
-	    static int MAPXLOWERLIMITCHANNEL = 109;
-	    static int MAPYLOWERLIMITCHANNEL = 110;
+
 	    static int SCOUTMAPEXPLORERCHANNEL1 = 107;
 	    static int SCOUTMAPEXPLORERCHANNEL2 = 108;
 	    static int SCOUTFOUNDFARMERXCHANNEL = 111;
 	    static int SCOUTFOUNDFARMERYCHANNEL = 112;
-	    static int XUPPERBOUND = 0; // The size of the map
-	    static int YUPPERBOUND = 0;
-	    static int XLOWERBOUND = 0; // The size of the map
-	    static int YLOWERBOUND = 0;
+
 		@Override
 	    public void init() throws GameActionException {
 
@@ -56,9 +50,7 @@ public class Scout extends RobotPlayer implements RobotHandler {
 	        	//rc.setIndicatorDot(my_loc, 0, 0, 255); // debug
 	        }
             checkIdle();
-            if (XUPPERBOUND == 0 || YUPPERBOUND == 0 || XLOWERBOUND == 0 || YLOWERBOUND == 0){ // Find out the map bound
-            listenToScout();
-            }
+
 	    }
 
 	    @Override
@@ -92,12 +84,7 @@ public class Scout extends RobotPlayer implements RobotHandler {
 			strategy = 0;
 			
 		}
-	    static void listenToScout() throws GameActionException{
-	    	XUPPERBOUND = rc.readBroadcast(MAPXLIMITCHANNEL);
-	    	YUPPERBOUND = rc.readBroadcast(MAPYLIMITCHANNEL);
-	    	XLOWERBOUND = rc.readBroadcast(MAPXLOWERLIMITCHANNEL);
-	    	YLOWERBOUND = rc.readBroadcast(MAPYLOWERLIMITCHANNEL);
-	    }
+
 	    
 	    static MapLocation nextTargetLocation = null;
 	    static int scoutID = 0; // 1 for begin at upper left, 2 for begin at bottom right
@@ -105,76 +92,19 @@ public class Scout extends RobotPlayer implements RobotHandler {
 		static void exploreMap() throws GameActionException {
 			// Major goal of this function is to find out the size of the map and broadcast
 			// And pick up bullets along the way
-			Direction[] fourDirections = {Direction.EAST,Direction.SOUTH,Direction.WEST,Direction.NORTH};
-			
-			// TODO Change to general DETECT MAP BOUNDARY function
 			senseAndBroadcastGardener();
+
 			
-			if (XUPPERBOUND == 0 || YUPPERBOUND == 0|| XLOWERBOUND == 0 || YLOWERBOUND == 0){ // Need to Find out the map bound
-				
-				if (rc.onTheMap(my_loc, type.sensorRadius) == false){ // The edge is seen at the moment
-					for (Direction dir:fourDirections){
-						if (XUPPERBOUND != 0 && dir == Direction.EAST) { // Already done
-							continue;
-						}
-						if (YUPPERBOUND != 0 && dir == Direction.NORTH) { // Already done
-							continue;
-						}
-						if (YLOWERBOUND != 0 && dir == Direction.SOUTH) { // Already done
-							continue;
-						}
-						if (XLOWERBOUND != 0 && dir == Direction.WEST) { // Already done
-							continue;
-						}
-						if (rc.onTheMap(my_loc.add(dir, type.sensorRadius))== false){ // this direction is not inside map
-							// run binary search to find out the range
-							int lowerbound = 0;
-							int upperbound = (int) type.sensorRadius;
-							while(lowerbound != upperbound){
-								int mid = (lowerbound+upperbound+1) /2;
-								if (rc.onTheMap(my_loc.add(dir,(float)mid)) == false){
-									upperbound = mid-1;
-								}
-								else {
-									lowerbound = mid;
-								}
-							}
-							if (dir == Direction.EAST){
-								rc.broadcast(MAPXLIMITCHANNEL, lowerbound+(int)rc.getLocation().x);
-								System.out.println("Find x upper bound "+ (lowerbound+(int)rc.getLocation().x));
-								
-							}
-							else if (dir ==Direction.NORTH){
-								rc.broadcast(MAPYLIMITCHANNEL, lowerbound+(int)rc.getLocation().y);
-								System.out.println("Find y upper bound "+(lowerbound+(int)rc.getLocation().y));
-								
-							}
-							else if (dir ==Direction.WEST){
-								rc.broadcast(MAPXLOWERLIMITCHANNEL, -lowerbound+(int)rc.getLocation().x);
-								System.out.println("Find x lower bound "+(-lowerbound+(int)rc.getLocation().x));
-								
-							}
-							else {
-								rc.broadcast(MAPYLOWERLIMITCHANNEL, -lowerbound+(int)rc.getLocation().y);
-								System.out.println("Find y lower bound "+(-lowerbound+(int)rc.getLocation().y));
-								
-							}
-							
-						}
-					}
-				}
-			}
-			
-			if (XLOWERBOUND == 0){
+			if (Messaging.lowerLimitX == 0){
 				tryMove(Direction.WEST,10,5); // Go figure out x lower bound
 			}
-			else if (YUPPERBOUND == 0){
+			else if (Messaging.upperLimitY == 0){
 				tryMove(Direction.NORTH,10,5); // Go figure out y upper bound
 			}
-			else if (YLOWERBOUND == 0){
+			else if (Messaging.lowerLimitY == 0){
 				tryMove(Direction.SOUTH,10,5); // Go figure out y lower bound
 			}
-			else if (XUPPERBOUND == 0){
+			else if (Messaging.upperLimitX == 0){
 				tryMove(Direction.EAST,10,5); // GO figure out x upper bound
 			}
 			
@@ -187,17 +117,17 @@ public class Scout extends RobotPlayer implements RobotHandler {
 				// Now we know the map size, enemy span location, and current location
 				// define several roadmap locations and pick up bullets along the way
 
-					if (rc.getLocation().distanceTo(new MapLocation(XLOWERBOUND,YLOWERBOUND)) < 
-							rc.getLocation().distanceTo(new MapLocation(XUPPERBOUND,YUPPERBOUND))
+					if (rc.getLocation().distanceTo(new MapLocation(Messaging.lowerLimitX,Messaging.lowerLimitY)) < 
+							rc.getLocation().distanceTo(new MapLocation(Messaging.upperLimitX,Messaging.upperLimitY))
 							&& rc.readBroadcast(SCOUTMAPEXPLORERCHANNEL1)==0){ 
 						// Start from bottom left
-						nextTargetLocation = new MapLocation(XLOWERBOUND+gridSize,YLOWERBOUND+gridSize);
+						nextTargetLocation = new MapLocation(Messaging.lowerLimitX+gridSize,Messaging.lowerLimitY+gridSize);
 						rc.broadcast(SCOUTMAPEXPLORERCHANNEL1, 1); 
 						scoutID =1;
 						
 					}
 					else if (rc.readBroadcast(SCOUTMAPEXPLORERCHANNEL2)==0){ // Start from upper right
-						nextTargetLocation = new MapLocation(XUPPERBOUND-gridSize,YUPPERBOUND-gridSize);
+						nextTargetLocation = new MapLocation(Messaging.upperLimitX-gridSize,Messaging.upperLimitY-gridSize);
 						rc.broadcast(SCOUTMAPEXPLORERCHANNEL2, 2); 
 						scoutID =2;
 					}
@@ -323,8 +253,8 @@ public class Scout extends RobotPlayer implements RobotHandler {
 
 		static boolean isValidTargetLoc(MapLocation newloc) {
 			
-			return (newloc.x <= XUPPERBOUND-gridSize) && (newloc.x >= XLOWERBOUND+gridSize)
-					&& (newloc.y <= YUPPERBOUND-gridSize) && (newloc.y >= YLOWERBOUND+gridSize);
+			return (newloc.x <= Messaging.upperLimitX-gridSize) && (newloc.x >= Messaging.lowerLimitX+gridSize)
+					&& (newloc.y <= Messaging.upperLimitY-gridSize) && (newloc.y >= Messaging.lowerLimitY+gridSize);
 		}
 		static float CLOSETOGARDNER = (float)4;
 		static void tryHarassGardener() throws GameActionException {

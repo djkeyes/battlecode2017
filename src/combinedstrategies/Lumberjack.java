@@ -56,6 +56,7 @@ public class Lumberjack extends RobotPlayer implements RobotHandler {
         }
     }
 
+
     private boolean tryMoveTowardNeutralTrees(int maxBytecodes) throws GameActionException {
         // precondition: neutralTreesInVision.length > 0
         // just find the closest

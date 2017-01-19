@@ -13,7 +13,13 @@ public strictfp class Messaging extends RobotPlayer {
     static final int SCOUT_COUNT_CHANNEL = 4;
     static final int SOLDIER_COUNT_CHANNEL = 5;
     static final int TANK_COUNT_CHANNEL = 6;
-
+    
+    // channels for map geometry
+    static final int MAP_Y_LOWERLIMIT_CHANNEL=20;
+    static final int MAP_Y_UPPERLIMIT_CHANNEL=21;
+    static final int MAP_X_LOWERLIMIT_CHANNEL=22;
+    static final int MAP_X_UPPERLIMIT_CHANNEL=23;
+    
     // useful variables to track when creating rooted gardeners
     static final int MAXED_GARDENER_COUNT_CHANNEL = 10;
     static final int TOTAL_TREE_INCOME_CHANNEL = 11;
@@ -36,6 +42,10 @@ public strictfp class Messaging extends RobotPlayer {
     static int maxedGardenerCount = 0;
     static float totalTreeIncome = 0;
 
+    static int lowerLimitX =0;
+    static int lowerLimitY =0;
+    static int upperLimitX =0;
+    static int upperLimitY =0;
     // possible strategies
     // TODO: any more we could implement? maybe a super-aggressive/low-econ rush? or maybe use tanks somehow?
     static final int MACRO_ARMY_STRATEGY = 0;
@@ -49,6 +59,21 @@ public strictfp class Messaging extends RobotPlayer {
         // TODO: we could "double buffer" this information if we want to always have the latest info
         if (!shouldSendHeartbeat()) {
             getUnitCounts();
+        }
+    }
+    
+    static void tryGetMapSize() throws GameActionException { // Read broadcast about map size
+        if (lowerLimitX==0) {
+            readMapLowerX();
+        }
+        if (lowerLimitY==0) {
+            readMapLowerY();
+        }
+        if (upperLimitX==0) {
+            readMapUpperX();
+        }
+        if (upperLimitY==0) {
+            readMapUpperY();
         }
     }
 
@@ -72,7 +97,7 @@ public strictfp class Messaging extends RobotPlayer {
         // use 1 as the remainder, since the game starts on round 1
         return rc.getRoundNum() % TURNS_BETWEEN_COUNTS == 1;
     }
-
+    
     static void sendHeartbeatSignal(int numArchons, int numGardeners, int numLumberjacks, int numScouts,
                                     int numSoldiers, int numTanks, int numMaxedGardeners, float treeIncome)
             throws GameActionException {
@@ -132,6 +157,7 @@ public strictfp class Messaging extends RobotPlayer {
             }
         }
     }
+    
 
     /**
      * Update unit counts for units built/hired/found in trees, between heartbeat rounds.
@@ -202,5 +228,37 @@ public strictfp class Messaging extends RobotPlayer {
     static void readStrategy() throws GameActionException {
         currentStrategy = rc.readBroadcast(STRATEGY_CHANNEL);
     }
-
-}
+    
+    static void reportMapLowerX(int lowerx) throws GameActionException {
+        lowerLimitX =lowerx;
+        rc.broadcast(MAP_X_LOWERLIMIT_CHANNEL, lowerx);
+    }
+    static void reportMapLowerY(int lowery) throws GameActionException {
+        lowerLimitY =lowery;
+        rc.broadcast(MAP_Y_LOWERLIMIT_CHANNEL, lowery);
+    }
+    static void reportMapUpperX(int upperx) throws GameActionException {
+        upperLimitX =upperx;
+        rc.broadcast(MAP_X_UPPERLIMIT_CHANNEL, upperx);
+    }
+    static void reportMapUpperY(int uppery) throws GameActionException {
+        upperLimitY =uppery;
+        rc.broadcast(MAP_Y_UPPERLIMIT_CHANNEL, uppery);
+    }
+    static void readMapLowerX() throws GameActionException {
+        
+        lowerLimitX=rc.readBroadcast(MAP_X_LOWERLIMIT_CHANNEL);
+    }
+    static void readMapLowerY() throws GameActionException {
+        
+        lowerLimitY=rc.readBroadcast(MAP_Y_LOWERLIMIT_CHANNEL);
+    }
+    static void readMapUpperX() throws GameActionException {
+        
+        upperLimitX=rc.readBroadcast(MAP_X_LOWERLIMIT_CHANNEL);
+    	}
+	static void readMapUpperY() throws GameActionException {
+    
+		upperLimitY=rc.readBroadcast(MAP_Y_UPPERLIMIT_CHANNEL);
+	}
+    }
