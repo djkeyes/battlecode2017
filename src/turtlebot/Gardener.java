@@ -331,7 +331,7 @@ strictfp class Gardener extends RobotPlayer {
         float defaultIncome = StrictMath.max(0f, GameConstants.ARCHON_BULLET_INCOME
                 - GameConstants.BULLET_INCOME_UNIT_PENALTY * StrictMath.max(100f, rc.getTeamBullets()));
         float bulletsPerTurn = Messaging.totalTreeIncome + defaultIncome;
-        float turnsToWin = (vpLeft * 10 - rc.getTeamBullets()) / bulletsPerTurn;
+        float turnsToWin = (vpLeft * GameConstants.BULLET_EXCHANGE_RATE - rc.getTeamBullets()) / bulletsPerTurn;
 
         return turnsForTreeToBreakEven > turnsToWin;
     }

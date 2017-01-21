@@ -223,16 +223,16 @@ public strictfp class RobotPlayer {
 
         float bullets = rc.getTeamBullets();
         int leftToWin = GameConstants.VICTORY_POINTS_TO_WIN - rc.getTeamVictoryPoints();
-        if (bullets > leftToWin * 10) {
-            int bulletsToTrade = leftToWin * 10;
+        if (bullets > leftToWin * GameConstants.BULLET_EXCHANGE_RATE) {
+            int bulletsToTrade = leftToWin * GameConstants.BULLET_EXCHANGE_RATE;
             rc.donate(bulletsToTrade);
         } else if (rc.getRoundNum() > rc.getRoundLimit() - 2) {
-            int roundedBullets = (int) (bullets / 10) * 10;
+            int roundedBullets = (int) (bullets / GameConstants.BULLET_EXCHANGE_RATE) * GameConstants.BULLET_EXCHANGE_RATE;
             rc.donate(roundedBullets);
-        } else if (rc.getTeamBullets() >= 100f + 10) {
+        } else if (rc.getTeamBullets() >= 100f + GameConstants.BULLET_EXCHANGE_RATE) {
             // maintain at least 100
             float excess = rc.getTeamBullets() - 100f;
-            int roundedBullets = (int) (excess / 10) * 10;
+            int roundedBullets = (int) (excess / GameConstants.BULLET_EXCHANGE_RATE) * GameConstants.BULLET_EXCHANGE_RATE;
             rc.donate(roundedBullets);
         }
     }
