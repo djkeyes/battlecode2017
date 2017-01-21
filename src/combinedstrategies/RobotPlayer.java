@@ -242,24 +242,23 @@ public strictfp class RobotPlayer {
 
         float bullets = rc.getTeamBullets();
         int leftToWin = GameConstants.VICTORY_POINTS_TO_WIN - rc.getTeamVictoryPoints();
-        if (bullets > leftToWin * GameConstants.BULLET_EXCHANGE_RATE) {
-            int bulletsToTrade = leftToWin * GameConstants.BULLET_EXCHANGE_RATE;
+        if (bullets > leftToWin * 10) {
+            int bulletsToTrade = leftToWin * 10;
             rc.donate(bulletsToTrade);
         } else if (rc.getRoundNum() > rc.getRoundLimit() - 2) {
-            int roundedBullets = (int) (bullets / GameConstants.BULLET_EXCHANGE_RATE) * GameConstants.BULLET_EXCHANGE_RATE;
+            int roundedBullets = (int) (bullets / 10) * 10;
             rc.donate(roundedBullets);
         } else if (Messaging.currentStrategy == Messaging.VP_WIN_STRATEGY
-                && bullets >= 100f + GameConstants.BULLET_EXCHANGE_RATE) {
+                && bullets >= 100f + 10) {
             // maintain at least 100
             float excess = bullets - 100f;
-            int roundedBullets = (int) (excess / GameConstants.BULLET_EXCHANGE_RATE) * GameConstants.BULLET_EXCHANGE_RATE;
+            int roundedBullets = (int) (excess / 10) * 10;
             rc.donate(roundedBullets);
         } else if (Messaging.currentStrategy == Messaging.VP_WIN_STRATEGY
-                && bullets >= GameConstants.BULLET_EXCHANGE_RATE
+                && bullets >= 10
                 && Gardener.moreEfficientToNotBuildTree()) {
             // if we're so close that we don't need new trees, stop saving any money
-            int roundedBullets = (int) (bullets / GameConstants.BULLET_EXCHANGE_RATE) * GameConstants
-                    .BULLET_EXCHANGE_RATE;
+            int roundedBullets = (int) (bullets / 10) * 10;
             rc.donate(roundedBullets);
         }
     }
@@ -288,7 +287,7 @@ public strictfp class RobotPlayer {
             return Float.MAX_VALUE;
         }
         int vpLeft = GameConstants.VICTORY_POINTS_TO_WIN - rc.getTeamVictoryPoints();
-        return (vpLeft * GameConstants.BULLET_EXCHANGE_RATE - rc.getTeamBullets()) / bulletsPerTurn;
+        return (vpLeft * 10 - rc.getTeamBullets()) / bulletsPerTurn;
     }
 
     static int computeEarliestRush() {
@@ -595,7 +594,7 @@ public strictfp class RobotPlayer {
         }
         return tryMoveTo(target.getLocation(), maxBytecodes);
     }
-    
+
     static void reportMapAwareness() throws GameActionException{
     	detectMapBoundary();
     	if (Messaging.lowerLimitX!=0){
@@ -678,13 +677,13 @@ public strictfp class RobotPlayer {
         return score;
     }
     static void detectMapBoundary() throws GameActionException {
-    	// If robot spots edges of the map, save it 
+    	// If robot spots edges of the map, save it
 		Direction[] fourDirections = {Direction.EAST,Direction.SOUTH,Direction.WEST,Direction.NORTH};
-		
+
 		// Detect whether the robot is on edge
 		if (Messaging.upperLimitX == 0 || Messaging.upperLimitY == 0||
 				Messaging.lowerLimitX== 0 || Messaging.lowerLimitY == 0){ // Need to Find out the map bound
-			
+
 			if (rc.onTheMap(rc.getLocation(), type.sensorRadius) == false){ // The edge is seen at the moment
 				for (Direction dir:fourDirections){
 					if (Messaging.upperLimitX != 0 && dir == Direction.EAST) { // Already done
@@ -715,24 +714,24 @@ public strictfp class RobotPlayer {
 						if (dir == Direction.EAST){
 							Messaging.upperLimitX = lowerbound+(int)rc.getLocation().x;
 							System.out.println("Find x upper bound "+ (lowerbound+(int)rc.getLocation().x));
-							
+
 						}
 						else if (dir ==Direction.NORTH){
 							Messaging.upperLimitY = lowerbound+(int)rc.getLocation().y;
 							System.out.println("Find y upper bound "+(lowerbound+(int)rc.getLocation().y));
-							
+
 						}
 						else if (dir ==Direction.WEST){
 							Messaging.lowerLimitX = -lowerbound+(int)rc.getLocation().x;
 							System.out.println("Find x lower bound "+(-lowerbound+(int)rc.getLocation().x));
-							
+
 						}
 						else {
 							Messaging.lowerLimitY = -lowerbound+(int)rc.getLocation().y;
 							System.out.println("Find y lower bound "+(-lowerbound+(int)rc.getLocation().y));
-							
+
 						}
-						
+
 					}
 				}
 			}
@@ -749,7 +748,7 @@ public strictfp class RobotPlayer {
                 + Messaging.tankCount * RobotType.TANK.bulletCost
                 + Messaging.lumberjackCount * RobotType.LUMBERJACK.bulletCost;
         if (Messaging.currentStrategy == Messaging.MACRO_ARMY_STRATEGY
-                && totalArmyValue >= GameConstants.VICTORY_POINTS_TO_WIN * GameConstants.BULLET_EXCHANGE_RATE) {
+                && totalArmyValue >= GameConstants.VICTORY_POINTS_TO_WIN * 10) {
             // change strategy
             Messaging.setStrategy(Messaging.VP_WIN_STRATEGY);
         }

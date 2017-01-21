@@ -144,11 +144,11 @@ public strictfp class RobotPlayer {
     static void tryTrivialWin() throws GameActionException {
         float bullets = rc.getTeamBullets();
         int leftToWin = GameConstants.VICTORY_POINTS_TO_WIN - rc.getTeamVictoryPoints();
-        if (bullets > leftToWin * GameConstants.BULLET_EXCHANGE_RATE) {
-            int bulletsToTrade = leftToWin * GameConstants.BULLET_EXCHANGE_RATE;
+        if (bullets > leftToWin * 10) {
+            int bulletsToTrade = leftToWin * 10;
             rc.donate(bulletsToTrade);
         } else if (rc.getRoundNum() > rc.getRoundLimit() - 3) {
-            int roundedBullets = (int) (bullets / GameConstants.BULLET_EXCHANGE_RATE) * GameConstants.BULLET_EXCHANGE_RATE;
+            int roundedBullets = (int) (bullets / 10) * 10;
             rc.donate(roundedBullets);
         }
     }
