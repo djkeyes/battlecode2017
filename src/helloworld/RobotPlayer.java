@@ -141,14 +141,18 @@ public strictfp class RobotPlayer {
         }
     }
 
+    static float getExchangeRate() throws GameActionException {
+        return (float)7.5 + (float)0.004166667 * rc.getRoundNum();
+    }
+
     static void tryTrivialWin() throws GameActionException {
         float bullets = rc.getTeamBullets();
         int leftToWin = GameConstants.VICTORY_POINTS_TO_WIN - rc.getTeamVictoryPoints();
-        if (bullets > leftToWin * GameConstants.BULLET_EXCHANGE_RATE) {
-            int bulletsToTrade = leftToWin * GameConstants.BULLET_EXCHANGE_RATE;
+        if (bullets > (int)(leftToWin * getExchangeRate())) {
+            int bulletsToTrade = (int)(leftToWin * getExchangeRate());
             rc.donate(bulletsToTrade);
         } else if (rc.getRoundNum() > rc.getRoundLimit() - 3) {
-            int roundedBullets = (int) (bullets / GameConstants.BULLET_EXCHANGE_RATE) * GameConstants.BULLET_EXCHANGE_RATE;
+            int roundedBullets = (int)((int) (bullets / getExchangeRate()) * getExchangeRate());
             rc.donate(roundedBullets);
         }
     }

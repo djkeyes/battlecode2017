@@ -40,7 +40,7 @@ public strictfp class RobotPlayer {
 
     static void init(RobotController rc) { // Initialization
         RobotPlayer.rc = rc;
-        RobotPlayer.type = rc.getType(); 
+        RobotPlayer.type = rc.getType();
 
         us = rc.getTeam();
         them = us.opponent();
@@ -145,16 +145,21 @@ public strictfp class RobotPlayer {
         }
     }
 
+
+    static float getExchangeRate() throws GameActionException {
+        return (float)7.5 + (float)0.004166667 * rc.getRoundNum();
+    }
+
     static void tryTrivialWin() throws GameActionException {
         float bullets = rc.getTeamBullets();
         //int leftToWin = GameConstants.VICTORY_POINTS_TO_WIN - rc.getTeamVictoryPoints();
         // FIXME this condition isn't currently checked by the server, don't bother
-        //if(bullets > leftToWin*GameConstants.BULLET_EXCHANGE_RATE){
-        //    int bulletsToTrade = leftToWin*GameConstants.BULLET_EXCHANGE_RATE;
+        //if(bullets > leftToWin*getExchangeRate()){
+        //    int bulletsToTrade = leftToWin*getExchangeRate());
         //    rc.donate(bulletsToTrade);
         //} else
         if (bullets>10000.0) {
-            int roundedBullets = (int) (bullets / GameConstants.BULLET_EXCHANGE_RATE) * GameConstants.BULLET_EXCHANGE_RATE;
+            int roundedBullets = (int)((int) (bullets / getExchangeRate()) * getExchangeRate());
             rc.donate(roundedBullets);
         }
     }
@@ -280,7 +285,7 @@ public strictfp class RobotPlayer {
     static boolean tryMoveTowardEnemyArchons() throws GameActionException {
         MapLocation[] archonLocs = rc.getInitialArchonLocations(them);
         // target each one in order
-        
+
         int readx = rc.readBroadcast(OPPONEARCHONXCHANNEL);
         if (readx ==0){
         	int idx = (rc.getRoundNum()/300)%archonLocs.length;

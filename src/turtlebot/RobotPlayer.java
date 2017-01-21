@@ -216,6 +216,11 @@ public strictfp class RobotPlayer {
         return false;
     }
 
+
+    static float getExchangeRate() {
+        return (float)7.5 + (float)0.004166667 * rc.getRoundNum();
+    }
+
     static void donateExcessVictoryPoints() throws GameActionException {
         if(rc.getRoundNum() < 20){
             return;
@@ -223,16 +228,16 @@ public strictfp class RobotPlayer {
 
         float bullets = rc.getTeamBullets();
         int leftToWin = GameConstants.VICTORY_POINTS_TO_WIN - rc.getTeamVictoryPoints();
-        if (bullets > leftToWin * GameConstants.BULLET_EXCHANGE_RATE) {
-            int bulletsToTrade = leftToWin * GameConstants.BULLET_EXCHANGE_RATE;
+        if (bullets > (int)(leftToWin * getExchangeRate())) {
+            int bulletsToTrade = (int)(leftToWin * getExchangeRate());
             rc.donate(bulletsToTrade);
         } else if (rc.getRoundNum() > rc.getRoundLimit() - 2) {
-            int roundedBullets = (int) (bullets / GameConstants.BULLET_EXCHANGE_RATE) * GameConstants.BULLET_EXCHANGE_RATE;
+            int roundedBullets = (int)((int) (bullets / getExchangeRate()) * getExchangeRate());
             rc.donate(roundedBullets);
-        } else if (rc.getTeamBullets() >= 100f + GameConstants.BULLET_EXCHANGE_RATE) {
+        } else if (rc.getTeamBullets() >= 100f + getExchangeRate()) {
             // maintain at least 100
             float excess = rc.getTeamBullets() - 100f;
-            int roundedBullets = (int) (excess / GameConstants.BULLET_EXCHANGE_RATE) * GameConstants.BULLET_EXCHANGE_RATE;
+            int roundedBullets = (int)((int) (excess / getExchangeRate()) * getExchangeRate());
             rc.donate(roundedBullets);
         }
     }

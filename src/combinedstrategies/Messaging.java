@@ -19,7 +19,7 @@ public strictfp class Messaging extends RobotPlayer {
     static final int MAP_Y_UPPERLIMIT_CHANNEL=21;
     static final int MAP_X_LOWERLIMIT_CHANNEL=22;
     static final int MAP_X_UPPERLIMIT_CHANNEL=23;
-    
+
     // useful variables to track when creating rooted gardeners
     static final int MAXED_GARDENER_COUNT_CHANNEL = 10;
     static final int TOTAL_TREE_INCOME_CHANNEL = 11;
@@ -43,10 +43,10 @@ public strictfp class Messaging extends RobotPlayer {
     static int treeCount = 0;
     static int itemBuiltCount = 0; // Including units built and tree planted
 
-    static int lowerLimitX =0;
-    static int lowerLimitY =0;
-    static int upperLimitX =0;
-    static int upperLimitY =0;
+    static int lowerLimitX = 0;
+    static int lowerLimitY = 0;
+    static int upperLimitX = 0;
+    static int upperLimitY = 0;
     // possible strategies
     // TODO: any more we could implement? maybe a super-aggressive/low-econ rush? or maybe use tanks somehow?
     static final int MACRO_ARMY_STRATEGY = 0;
@@ -63,7 +63,7 @@ public strictfp class Messaging extends RobotPlayer {
             getUnitCounts();
         }
     }
-    
+
     static void tryGetMapSize() throws GameActionException { // Read broadcast about map size
         if (lowerLimitX==0) {
             readMapLowerX();
@@ -100,9 +100,9 @@ public strictfp class Messaging extends RobotPlayer {
         // use 1 as the remainder, since the game starts on round 1
         return rc.getRoundNum() % TURNS_BETWEEN_COUNTS == 1;
     }
-    
+
     static void sendHeartbeatSignal(int numArchons, int numGardeners, int numLumberjacks, int numScouts,
-                                    int numSoldiers, int numTanks, int numMaxedGardeners, float treeIncome, 
+                                    int numSoldiers, int numTanks, int numMaxedGardeners, float treeIncome,
                                     int numTrees)
             throws GameActionException {
         // TODO: a common use case is to have exactly 1 non-zero argument. maybe we should separate this into n
@@ -158,7 +158,7 @@ public strictfp class Messaging extends RobotPlayer {
                 int encodedTreeIncome = rc.readBroadcast(TOTAL_TREE_INCOME_CHANNEL);
                 treeIncome += Float.intBitsToFloat(encodedTreeIncome);
                 int encodedIncome = Float.floatToIntBits(treeIncome);
-                rc.broadcast(TOTAL_TREE_INCOME_CHANNEL, encodedIncome);                
+                rc.broadcast(TOTAL_TREE_INCOME_CHANNEL, encodedIncome);
             }
             if (numTrees > 0) {
             	numTrees += rc.readBroadcast(TREE_COUNT_CHANNEL);
@@ -166,7 +166,7 @@ public strictfp class Messaging extends RobotPlayer {
             }
         }
     }
-    
+
 
     /**
      * Update unit counts for units built/hired/found in trees, between heartbeat rounds.
@@ -227,7 +227,7 @@ public strictfp class Messaging extends RobotPlayer {
     static void reportBuiltTank() throws GameActionException {
         rc.broadcast(TANK_COUNT_CHANNEL, tankCount + 1);
     }
-    
+
 
 
     static void setStrategy(int strategy) throws GameActionException {
@@ -238,7 +238,7 @@ public strictfp class Messaging extends RobotPlayer {
     static void readStrategy() throws GameActionException {
         currentStrategy = rc.readBroadcast(STRATEGY_CHANNEL);
     }
-    
+
     static void reportMapLowerX(int lowerx) throws GameActionException {
         lowerLimitX =lowerx;
         rc.broadcast(MAP_X_LOWERLIMIT_CHANNEL, lowerx);
@@ -256,19 +256,19 @@ public strictfp class Messaging extends RobotPlayer {
         rc.broadcast(MAP_Y_UPPERLIMIT_CHANNEL, uppery);
     }
     static void readMapLowerX() throws GameActionException {
-        
+
         lowerLimitX=rc.readBroadcast(MAP_X_LOWERLIMIT_CHANNEL);
     }
     static void readMapLowerY() throws GameActionException {
-        
+
         lowerLimitY=rc.readBroadcast(MAP_Y_LOWERLIMIT_CHANNEL);
     }
     static void readMapUpperX() throws GameActionException {
-        
+
         upperLimitX=rc.readBroadcast(MAP_X_UPPERLIMIT_CHANNEL);
     	}
 	static void readMapUpperY() throws GameActionException {
-    
+
 		upperLimitY=rc.readBroadcast(MAP_Y_UPPERLIMIT_CHANNEL);
 	}
     }
