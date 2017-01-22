@@ -258,6 +258,10 @@ public strictfp class RobotPlayer {
             // if we're so close that we don't need new trees, stop saving any money
             float roundedBullets = ((int) (bullets / rc.getVictoryPointCost())) * rc.getVictoryPointCost();
             rc.donate(roundedBullets);
+        } else if(bullets > 1000){
+            float excess = bullets - 1000f;
+            float roundedBullets = ((int) (excess / rc.getVictoryPointCost())) * rc.getVictoryPointCost();
+            rc.donate(roundedBullets);
         }
     }
 
