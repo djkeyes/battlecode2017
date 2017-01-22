@@ -15,10 +15,10 @@ public strictfp class Messaging extends RobotPlayer {
     static final int TANK_COUNT_CHANNEL = 6;
     static final int TREE_COUNT_CHANNEL = 7;
     // channels for map geometry
-    static final int MAP_Y_LOWERLIMIT_CHANNEL=20;
-    static final int MAP_Y_UPPERLIMIT_CHANNEL=21;
-    static final int MAP_X_LOWERLIMIT_CHANNEL=22;
-    static final int MAP_X_UPPERLIMIT_CHANNEL=23;
+    static final int MAP_Y_LOWERLIMIT_CHANNEL = 20;
+    static final int MAP_Y_UPPERLIMIT_CHANNEL = 21;
+    static final int MAP_X_LOWERLIMIT_CHANNEL = 22;
+    static final int MAP_X_UPPERLIMIT_CHANNEL = 23;
 
     // useful variables to track when creating rooted gardeners
     static final int MAXED_GARDENER_COUNT_CHANNEL = 10;
@@ -27,6 +27,16 @@ public strictfp class Messaging extends RobotPlayer {
 
     // overarching game strategy
     static final int STRATEGY_CHANNEL = 12;
+
+    // Enemy positions. For now we will reserve 200 channels for this, which is 100 positions (x, y).
+    // The detected positions will be stored sequentially and only positions which are not yet registered
+    // will be stored.
+    static final int ENEMY_POSITIONS_START_CHANNEL = 1000;
+    static final int NUM_ENEMY_POSITIONS_CHANNELS = 200;
+    // Specifies the "index" of last loaded channel.
+    static int LAST_LOCATION_CHANNEL = -1;
+    // Minimal distance squared to consider adding a new position.
+    static final float MIN_POSITIONS_UPDATE_DISTANCE_SQ = 49;
 
     /********************************************************************/
 
@@ -65,16 +75,16 @@ public strictfp class Messaging extends RobotPlayer {
     }
 
     static void tryGetMapSize() throws GameActionException { // Read broadcast about map size
-        if (lowerLimitX==0) {
+        if (lowerLimitX == 0) {
             readMapLowerX();
         }
-        if (lowerLimitY==0) {
+        if (lowerLimitY == 0) {
             readMapLowerY();
         }
-        if (upperLimitX==0) {
+        if (upperLimitX == 0) {
             readMapUpperX();
         }
-        if (upperLimitY==0) {
+        if (upperLimitY == 0) {
             readMapUpperY();
         }
     }
@@ -90,7 +100,8 @@ public strictfp class Messaging extends RobotPlayer {
         int encodedTreeIncome = rc.readBroadcast(TOTAL_TREE_INCOME_CHANNEL);
         treeCount = rc.readBroadcast(TREE_COUNT_CHANNEL);
         totalTreeIncome = Float.intBitsToFloat(encodedTreeIncome);
-        itemBuiltCount = gardenerCount + lumberjackCount + scoutCount + soldierCount + tankCount+ treeCount;
+        itemBuiltCount = gardenerCount + lumberjackCount + scoutCount + soldierCount + tankCount +
+                         treeCount;
 //        System.out.printf("[A: %d, G: %d, L: %d, Sct: %d, Sdr: %d, T: %d, MaxedG: %d, Inc: %.4f, Tr: %d]\n",
 //                archonCount, gardenerCount, lumberjackCount, scoutCount, soldierCount, tankCount, maxedGardenerCount,
 //                totalTreeIncome,treeCount);
@@ -103,8 +114,7 @@ public strictfp class Messaging extends RobotPlayer {
 
     static void sendHeartbeatSignal(int numArchons, int numGardeners, int numLumberjacks, int numScouts,
                                     int numSoldiers, int numTanks, int numMaxedGardeners, float treeIncome,
-                                    int numTrees)
-            throws GameActionException {
+                                    int numTrees) throws GameActionException {
         // TODO: a common use case is to have exactly 1 non-zero argument. maybe we should separate this into n
         // separate methods?
 
@@ -161,8 +171,8 @@ public strictfp class Messaging extends RobotPlayer {
                 rc.broadcast(TOTAL_TREE_INCOME_CHANNEL, encodedIncome);
             }
             if (numTrees > 0) {
-            	numTrees += rc.readBroadcast(TREE_COUNT_CHANNEL);
-            	rc.broadcast(TREE_COUNT_CHANNEL, numTrees);
+                numTrees += rc.readBroadcast(TREE_COUNT_CHANNEL);
+                rc.broadcast(TREE_COUNT_CHANNEL, numTrees);
             }
         }
     }
@@ -229,46 +239,70 @@ public strictfp class Messaging extends RobotPlayer {
     }
 
 
-
     static void setStrategy(int strategy) throws GameActionException {
         currentStrategy = strategy;
         rc.broadcast(STRATEGY_CHANNEL, strategy);
     }
-
     static void readStrategy() throws GameActionException {
         currentStrategy = rc.readBroadcast(STRATEGY_CHANNEL);
     }
 
     static void reportMapLowerX(int lowerx) throws GameActionException {
-        lowerLimitX =lowerx;
+        lowerLimitX = lowerx;
         rc.broadcast(MAP_X_LOWERLIMIT_CHANNEL, lowerx);
     }
     static void reportMapLowerY(int lowery) throws GameActionException {
-        lowerLimitY =lowery;
+        lowerLimitY = lowery;
         rc.broadcast(MAP_Y_LOWERLIMIT_CHANNEL, lowery);
     }
     static void reportMapUpperX(int upperx) throws GameActionException {
-        upperLimitX =upperx;
+        upperLimitX = upperx;
         rc.broadcast(MAP_X_UPPERLIMIT_CHANNEL, upperx);
     }
     static void reportMapUpperY(int uppery) throws GameActionException {
-        upperLimitY =uppery;
+        upperLimitY = uppery;
         rc.broadcast(MAP_Y_UPPERLIMIT_CHANNEL, uppery);
     }
     static void readMapLowerX() throws GameActionException {
-
-        lowerLimitX=rc.readBroadcast(MAP_X_LOWERLIMIT_CHANNEL);
+        lowerLimitX = rc.readBroadcast(MAP_X_LOWERLIMIT_CHANNEL);
     }
     static void readMapLowerY() throws GameActionException {
-
-        lowerLimitY=rc.readBroadcast(MAP_Y_LOWERLIMIT_CHANNEL);
+        lowerLimitY = rc.readBroadcast(MAP_Y_LOWERLIMIT_CHANNEL);
     }
     static void readMapUpperX() throws GameActionException {
-
-        upperLimitX=rc.readBroadcast(MAP_X_UPPERLIMIT_CHANNEL);
-    	}
-	static void readMapUpperY() throws GameActionException {
-
-		upperLimitY=rc.readBroadcast(MAP_Y_UPPERLIMIT_CHANNEL);
-	}
+        upperLimitX = rc.readBroadcast(MAP_X_UPPERLIMIT_CHANNEL);
     }
+    static void readMapUpperY() throws GameActionException {
+        upperLimitY = rc.readBroadcast(MAP_Y_UPPERLIMIT_CHANNEL);
+    }
+
+    static void readEnemyPositions(int[] xpos, int[] ypos, int num_pos) throws GameActionException {
+        if (num_pos == LAST_LOCATION_CHANNEL)
+            return;
+        // Assuming there is a limit to the number of robots detected.
+        for (int i = num_pos + 1; i <= LAST_LOCATION_CHANNEL; ++i) {
+            xpos[i] = (int)(rc.readBroadcast(2 * i + ENEMY_POSITIONS_START_CHANNEL) * 10);
+            ypos[i] = (int)(rc.readBroadcast(2 * i + ENEMY_POSITIONS_START_CHANNEL + 1) * 10);
+        }
+        num_pos = LAST_LOCATION_CHANNEL;
+    }
+    static void writeEnemyPosition(float x, float y, int[] xpos, int[] ypos,
+                                   int num_pos) throws GameActionException {
+        // Make sure the local positions are up-to-date with the global broadcasted positions.
+        readEnemyPositions(xpos, ypos, num_pos);
+        if (num_pos == 100)
+            return;
+        for (int i = 0; i < num_pos; ++i) {
+            if ((xpos[i] - 10 * x) * (xpos[i] - 10 * x) + (ypos[i] - 10 * y) * (ypos[i] - 10 * y) < 100 *
+                    MIN_POSITIONS_UPDATE_DISTANCE_SQ) {
+                return;
+            }
+        }
+        ++num_pos;
+        ++LAST_LOCATION_CHANNEL;
+        xpos[num_pos] = (int)(x * 10);
+        ypos[num_pos] = (int)(y * 10);
+        rc.broadcast(ENEMY_POSITIONS_START_CHANNEL + num_pos * 2, xpos[num_pos]);
+        rc.broadcast(ENEMY_POSITIONS_START_CHANNEL + 1 + num_pos * 2, ypos[num_pos]);
+    }
+}
