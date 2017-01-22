@@ -172,7 +172,7 @@ public strictfp class RobotPlayer {
         double maxTheta = 2.0 * StrictMath.PI;
         // if we're trying to move in a particular direction, only sample from that hemisphere
         if (desiredMovementDir != null) {
-            thetaOffset = -StrictMath.PI / 2.;
+            thetaOffset = desiredMovementDir.radians - StrictMath.PI / 2.;
             maxTheta = StrictMath.PI;
         } else {
             // if we're not trying to go somewhere, first see if not moving helps
@@ -181,7 +181,7 @@ public strictfp class RobotPlayer {
         }
         double theta;
         float r = type.strideRadius;
-        while (minDamage > 0 && Clock.getBytecodeNum() < maxBytecodes) {
+        while (minDamage > 0f && Clock.getBytecodeNum() < maxBytecodes) {
             // uniformly sample edges of stride space
             // we could also sample the whole circle, but counting bullets is so costly that we usually only get 10
             // or so iterations in.
@@ -526,6 +526,7 @@ public strictfp class RobotPlayer {
     static boolean isPathToRobotObstructed(RobotInfo other) throws GameActionException {
         // naive, just sample some points
         // TODO: be smarter
+        float EPSILON = 0.0001f;
         MapLocation loc = rc.getLocation();
         MapLocation otherLoc = other.getLocation();
         Direction dir = loc.directionTo(otherLoc);
@@ -534,9 +535,9 @@ public strictfp class RobotPlayer {
         for (int i = 0; i < numSamples; i++) {
             float curDist = type.bodyRadius + dist * i / (numSamples - 1);
             if (i == 0) {
-                curDist = StrictMath.nextUp(curDist);
+                curDist += EPSILON;
             } else if (i == numSamples - 1) {
-                curDist = StrictMath.nextDown(curDist);
+                curDist -= EPSILON;
             }
             MapLocation sampleLoc = loc.add(dir, curDist);
 
