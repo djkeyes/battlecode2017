@@ -16,7 +16,8 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
     // -align trees on a grid
     // -circle builds, but aligned on a grid
 
-    static final int NUM_TREES_PER_GARDENER = 8;
+    // unfortunately with the latest patch, n>7 trees is too far to water without moving
+    static final int NUM_TREES_PER_GARDENER = 7;
     static final float TREE_OFFSET_EPSILON = 0.0001f;
 
     private MapLocation centerPosition;
