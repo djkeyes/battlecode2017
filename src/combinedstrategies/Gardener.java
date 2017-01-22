@@ -144,7 +144,7 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
 
 
     private void tryWateringNearby() throws GameActionException {
-        TreeInfo[] nearbyTrees = rc.senseNearbyTrees(type.bodyRadius + type.strideRadius, us);
+        TreeInfo[] nearbyTrees = rc.senseNearbyTrees(type.bodyRadius + GameConstants.INTERACTION_DIST_FROM_EDGE, us);
         // find lowest health tree
         float lowestHealth = Float.MAX_VALUE;
         TreeInfo bestTree = null;
