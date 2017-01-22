@@ -234,10 +234,6 @@ public strictfp class RobotPlayer {
         return totalDamage;
     }
 
-    static float getExchangeRate() {
-        return (float)7.5 + (float)0.004166667 * rc.getRoundNum();
-    }
-
     static void donateExcessVictoryPoints() throws GameActionException {
         if (rc.getRoundNum() < 20) {
             return;
@@ -245,23 +241,22 @@ public strictfp class RobotPlayer {
 
         float bullets = rc.getTeamBullets();
         int leftToWin = GameConstants.VICTORY_POINTS_TO_WIN - rc.getTeamVictoryPoints();
-        if (bullets > (int)(leftToWin * getExchangeRate())) {
-            int bulletsToTrade = (int) ((int)(leftToWin * getExchangeRate()));
-            rc.donate(bulletsToTrade);
+        if ((bullets / rc.getVictoryPointCost()) > leftToWin) {
+            rc.donate(bullets);
         } else if (rc.getRoundNum() > rc.getRoundLimit() - 2) {
-            int roundedBullets = (int)((int) (bullets / getExchangeRate()) * getExchangeRate());
+            float roundedBullets = ((int) (bullets / rc.getVictoryPointCost())) * rc.getVictoryPointCost();
             rc.donate(roundedBullets);
         } else if (Messaging.currentStrategy == Messaging.VP_WIN_STRATEGY
-                && bullets >= 100f + getExchangeRate()) {
+                && bullets >= 100f + rc.getVictoryPointCost()) {
             // maintain at least 100
             float excess = bullets - 100f;
-            int roundedBullets = (int) (excess / getExchangeRate() * getExchangeRate());
+            float roundedBullets = ((int) (excess / rc.getVictoryPointCost())) * rc.getVictoryPointCost();
             rc.donate(roundedBullets);
         } else if (Messaging.currentStrategy == Messaging.VP_WIN_STRATEGY
-                && bullets >= getExchangeRate()
+                && bullets > rc.getVictoryPointCost()
                 && Gardener.moreEfficientToNotBuildTree()) {
             // if we're so close that we don't need new trees, stop saving any money
-            int roundedBullets = (int)((int) (bullets / getExchangeRate()) * getExchangeRate());
+            float roundedBullets = ((int) (bullets / rc.getVictoryPointCost())) * rc.getVictoryPointCost();
             rc.donate(roundedBullets);
         }
     }
@@ -289,8 +284,10 @@ public strictfp class RobotPlayer {
         if (bulletsPerTurn < 0.0001f) {
             return Float.MAX_VALUE;
         }
-        int vpLeft = GameConstants.VICTORY_POINTS_TO_WIN - rc.getTeamVictoryPoints();
-        return (vpLeft * getExchangeRate() - rc.getTeamBullets()) / bulletsPerTurn;
+        // assuming a constant income, we could compute the exact amount needed (since the exchange rate will go up in
+        // future turns), but a linear estimate using the current rate is a pretty good approximation.
+        float vpLeft = GameConstants.VICTORY_POINTS_TO_WIN - rc.getTeamVictoryPoints();
+        return (vpLeft * rc.getVictoryPointCost() - rc.getTeamBullets()) / bulletsPerTurn;
     }
 
     static int computeEarliestRush() {
@@ -751,7 +748,7 @@ public strictfp class RobotPlayer {
                 + Messaging.tankCount * RobotType.TANK.bulletCost
                 + Messaging.lumberjackCount * RobotType.LUMBERJACK.bulletCost;
         if (Messaging.currentStrategy == Messaging.MACRO_ARMY_STRATEGY
-                && totalArmyValue >= GameConstants.VICTORY_POINTS_TO_WIN * getExchangeRate()) {
+                && totalArmyValue >= GameConstants.VICTORY_POINTS_TO_WIN * rc.getVictoryPointCost()) {
             // change strategy
             Messaging.setStrategy(Messaging.VP_WIN_STRATEGY);
         }
