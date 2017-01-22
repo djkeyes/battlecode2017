@@ -91,9 +91,9 @@ public strictfp class Messaging extends RobotPlayer {
         treeCount = rc.readBroadcast(TREE_COUNT_CHANNEL);
         totalTreeIncome = Float.intBitsToFloat(encodedTreeIncome);
         itemBuiltCount = gardenerCount + lumberjackCount + scoutCount + soldierCount + tankCount+ treeCount;
-        System.out.printf("[A: %d, G: %d, L: %d, Sct: %d, Sdr: %d, T: %d, MaxedG: %d, Inc: %.4f, Tr: %d]\n",
-                archonCount, gardenerCount, lumberjackCount, scoutCount, soldierCount, tankCount, maxedGardenerCount,
-                totalTreeIncome,treeCount);
+//        System.out.printf("[A: %d, G: %d, L: %d, Sct: %d, Sdr: %d, T: %d, MaxedG: %d, Inc: %.4f, Tr: %d]\n",
+//                archonCount, gardenerCount, lumberjackCount, scoutCount, soldierCount, tankCount, maxedGardenerCount,
+//                totalTreeIncome,treeCount);
     }
 
     static boolean shouldSendHeartbeat() {

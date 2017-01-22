@@ -33,19 +33,19 @@ public class Scout extends RobotPlayer implements RobotHandler {
         	bullets = rc.senseNearbyBullets(SENSEBULLETRANGE);
 	        if (strategy == 0){
 	        	tryHarassGardener(); // Move and attack command
-	        	System.out.println("I harass worker!");
+//	        	System.out.println("I harass worker!");
 
 	        	//rc.setIndicatorDot(my_loc, 255, 0, 0); // debug
 	        	
 	        } 
 	        else if (strategy == 1){
-	        	System.out.println("I explore the map!");
+//	        	System.out.println("I explore the map!");
 	        	
 	        	exploreMap(); // Explores around the map and pick up bullets from trees
 		        //rc.setIndicatorDot(my_loc, 0, 255, 0); // debug
 	        }
 	        else{
-	        	System.out.println("I observe opponent!");
+//	        	System.out.println("I observe opponent!");
 	        	observeOpponent();
 	        	//rc.setIndicatorDot(my_loc, 0, 0, 255); // debug
 	        }
