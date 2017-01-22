@@ -262,7 +262,7 @@ public strictfp class RobotPlayer {
     }
 
     static void tryShakeNearby() throws GameActionException {
-        TreeInfo[] nearbyTrees = rc.senseNearbyTrees(type.bodyRadius + type.strideRadius, Team.NEUTRAL);
+        TreeInfo[] nearbyTrees = rc.senseNearbyTrees(type.bodyRadius + GameConstants.INTERACTION_DIST_FROM_EDGE, Team.NEUTRAL);
         int maxBullets = 0;
         TreeInfo bestTree = null;
         for (TreeInfo tree : nearbyTrees) {
