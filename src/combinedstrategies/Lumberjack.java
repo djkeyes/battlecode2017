@@ -6,7 +6,7 @@ public class Lumberjack extends RobotPlayer implements RobotHandler {
 
     private int turnsAlive = 0;
     private TreeInfo[] neutralTreesInVision = null;
-    private TreeInfo[] neutralTreesInStrideRadius = null;
+    private TreeInfo[] neutralTreesInInteractionRadius = null;
 
 
     @Override
@@ -17,10 +17,10 @@ public class Lumberjack extends RobotPlayer implements RobotHandler {
     public void onLoop() throws GameActionException {
         boolean attacked = tryMeleeAttackEnemy();
         neutralTreesInVision = rc.senseNearbyTrees(type.sensorRadius, Team.NEUTRAL);
-        neutralTreesInStrideRadius = rc.senseNearbyTrees(type.strideRadius, Team.NEUTRAL);
+        neutralTreesInInteractionRadius = rc.senseNearbyTrees(type.bodyRadius + GameConstants.INTERACTION_DIST_FROM_EDGE, Team.NEUTRAL);
 
         if (!tryMoveTowardEnemy(6000)) {
-            if (!attacked && neutralTreesInStrideRadius.length > 0) {
+            if (!attacked && neutralTreesInInteractionRadius.length > 0) {
                 // if we've found a neutral tree, don't bother moving at all.
                 chopBest();
                 attacked = true;
@@ -28,7 +28,7 @@ public class Lumberjack extends RobotPlayer implements RobotHandler {
                 tryMoveTowardNeutralTrees(8000);
                 neutralTreesInVision = rc.senseNearbyTrees(type.sensorRadius, Team.NEUTRAL);
                 // try again
-                if (!attacked && neutralTreesInStrideRadius.length > 0) {
+                if (!attacked && neutralTreesInInteractionRadius.length > 0) {
                     chopBest();
                     attacked = true;
                 }
@@ -74,7 +74,7 @@ public class Lumberjack extends RobotPlayer implements RobotHandler {
     }
 
     private void chopBest() throws GameActionException {
-        // precondition: neutralTreesInStrideRadius.length > 0
+        // precondition: neutralTreesInInteractionRadius.length > 0
 
         // pick a tree
         // TODO: which one to choose? min health? max area covered? has contained robot?
@@ -83,7 +83,7 @@ public class Lumberjack extends RobotPlayer implements RobotHandler {
         TreeInfo bestTree = null;
         boolean hasContainedRobot = false;
         float minHealth = Float.MAX_VALUE;
-        for (TreeInfo tree : neutralTreesInStrideRadius) {
+        for (TreeInfo tree : neutralTreesInInteractionRadius) {
             if (tree.containedRobot != null) {
                 if (tree.health < minHealth || !hasContainedRobot) {
                     hasContainedRobot = true;
@@ -177,7 +177,7 @@ public class Lumberjack extends RobotPlayer implements RobotHandler {
         TreeInfo bestTree = null;
         for (TreeInfo tree : trees) {
             float dist = tree.getLocation().distanceTo(rc.getLocation());
-            if (dist > RobotType.LUMBERJACK.bodyRadius + tree.getRadius() + RobotType.LUMBERJACK.strideRadius) {
+            if (dist > RobotType.LUMBERJACK.bodyRadius + tree.getRadius() + GameConstants.INTERACTION_DIST_FROM_EDGE) {
                 continue;
             }
             if (tree.health < minHealth) {
