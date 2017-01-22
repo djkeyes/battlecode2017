@@ -26,7 +26,7 @@ public strictfp class Messaging extends RobotPlayer {
 
 
     // overarching game strategy
-    static final int STRATEGY_CHANNEL = 20;
+    static final int STRATEGY_CHANNEL = 12;
 
     /********************************************************************/
 
