@@ -222,22 +222,26 @@ public strictfp class RobotPlayer {
     }
 
     static void donateExcessVictoryPoints() throws GameActionException {
-        if(rc.getRoundNum() < 20){
+        if (rc.getRoundNum() < 20) {
             return;
         }
 
         float bullets = rc.getTeamBullets();
         int leftToWin = GameConstants.VICTORY_POINTS_TO_WIN - rc.getTeamVictoryPoints();
-        if (bullets > (int)(leftToWin * getExchangeRate())) {
-            int bulletsToTrade = (int)(leftToWin * getExchangeRate());
-            rc.donate(bulletsToTrade);
+        if ((bullets / rc.getVictoryPointCost()) > leftToWin) {
+            rc.donate(bullets);
         } else if (rc.getRoundNum() > rc.getRoundLimit() - 2) {
-            int roundedBullets = (int)((int) (bullets / getExchangeRate()) * getExchangeRate());
+            float roundedBullets = ((int) (bullets / rc.getVictoryPointCost())) * rc.getVictoryPointCost();
             rc.donate(roundedBullets);
-        } else if (rc.getTeamBullets() >= 100f + getExchangeRate()) {
+        } else if (bullets >= 100f + rc.getVictoryPointCost()) {
             // maintain at least 100
-            float excess = rc.getTeamBullets() - 100f;
-            int roundedBullets = (int)((int) (excess / getExchangeRate()) * getExchangeRate());
+            float excess = bullets - 100f;
+            float roundedBullets = ((int) (excess / rc.getVictoryPointCost())) * rc.getVictoryPointCost();
+            rc.donate(roundedBullets);
+        } else if (bullets > rc.getVictoryPointCost()
+                && Gardener.moreEfficientToNotBuildTree()) {
+            // if we're so close that we don't need new trees, stop saving any money
+            float roundedBullets = ((int) (bullets / rc.getVictoryPointCost())) * rc.getVictoryPointCost();
             rc.donate(roundedBullets);
         }
     }

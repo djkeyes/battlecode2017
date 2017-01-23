@@ -6,7 +6,7 @@ strictfp class Gardener extends RobotPlayer {
 
 
     // Changing the values 7 <= n <= 10 doesn't seems to have a significant effect.
-    static final int NUM_TREES_PER_GARDENER = 8;
+    static final int NUM_TREES_PER_GARDENER = 7;
     static final float TREE_OFFSET_EPSILON = 0.0001f;
     static boolean shouldBuildTree;
     static RobotType typeToBuild;
