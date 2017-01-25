@@ -762,22 +762,21 @@ public strictfp class RobotPlayer {
 					if (Messaging.lowerLimitX!= 0 && dir == Direction.WEST) { // Already done
 						continue;
 					}
-					if (rc.onTheMap(rc.getLocation().add(dir, type.sensorRadius - SENSOR_EPSILON))== false){
+					if (!rc.onTheMap(rc.getLocation().add(dir, type.sensorRadius - SENSOR_EPSILON))){
 					    // this direction is not inside map
 						// run binary search to find out the range
-						int lowerbound = 0;
-						int upperbound = (int) type.sensorRadius;
-						while(lowerbound != upperbound){
-							int mid = (lowerbound+upperbound+1) /2;
-							if (rc.onTheMap(rc.getLocation().add(dir,(float)mid)) == false){
-								upperbound = mid-1;
-							}
-							else {
-								lowerbound = mid;
-							}
-						}
-						if (dir == Direction.EAST){
-							Messaging.upperLimitX = lowerbound+(int)rc.getLocation().x;
+                        int lowerbound = 0;
+                        int upperbound = (int) type.sensorRadius;
+                        while (lowerbound != upperbound) {
+                            int mid = (lowerbound + upperbound + 1) / 2;
+                            if (rc.onTheMap(rc.getLocation().add(dir, ((float) mid) - SENSOR_EPSILON))) {
+                                upperbound = mid - 1;
+                            } else {
+                                lowerbound = mid;
+                            }
+                        }
+                        if (dir == Direction.EAST) {
+                            Messaging.upperLimitX = lowerbound+(int)rc.getLocation().x;
 //							System.out.println("Find x upper bound "+ (lowerbound+(int)rc.getLocation().x));
 
 						}
