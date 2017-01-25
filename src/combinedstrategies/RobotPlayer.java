@@ -739,6 +739,7 @@ public strictfp class RobotPlayer {
                 * enemy.type.strideRadius * enemy.type.bodyRadius;
         return score;
     }
+    static final float SENSOR_EPSILON = 0.00001f;
     static void detectMapBoundary() throws GameActionException {
     	// If robot spots edges of the map, save it
 		Direction[] fourDirections = {Direction.EAST,Direction.SOUTH,Direction.WEST,Direction.NORTH};
@@ -761,7 +762,8 @@ public strictfp class RobotPlayer {
 					if (Messaging.lowerLimitX!= 0 && dir == Direction.WEST) { // Already done
 						continue;
 					}
-					if (rc.onTheMap(rc.getLocation().add(dir, type.sensorRadius))== false){ // this direction is not inside map
+					if (rc.onTheMap(rc.getLocation().add(dir, type.sensorRadius - SENSOR_EPSILON))== false){
+					    // this direction is not inside map
 						// run binary search to find out the range
 						int lowerbound = 0;
 						int upperbound = (int) type.sensorRadius;
