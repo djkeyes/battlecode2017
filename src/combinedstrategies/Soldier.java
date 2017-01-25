@@ -13,14 +13,13 @@ public class Soldier extends RobotPlayer implements RobotHandler {
     public void onLoop() throws GameActionException {
         boolean attackedAndMoved = tryPentashotScoutRush(5000);
         if (!attackedAndMoved) {
-            if (!tryMoveTowardEnemy(7000)) {
-                if (!tryDodgeBullets(7500)) {
-                    tryMoveTowardEnemyArchons(8000);
+            if (!tryMoveTowardEnemy(6500)) {
+                if (!tryDodgeBullets(7000)) {
+                    tryMoveTowardEnemyArchons(7500);
                 }
             }
-            tryAttackEnemy();
+            tryAttackEnemy(8000);
         }
-
     }
 
     @Override

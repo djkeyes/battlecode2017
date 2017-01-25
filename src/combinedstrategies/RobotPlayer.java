@@ -72,6 +72,7 @@ public strictfp class RobotPlayer {
         }
         handler.init();
         while (true) {
+            int startTurn = rc.getRoundNum();
             updateNearby();
             Messaging.tryGetMapSize();
             Messaging.tryGetUnitCounts();
@@ -82,6 +83,10 @@ public strictfp class RobotPlayer {
             donateExcessVictoryPoints();
             handler.reportUnitCount();
             reportMapAwareness();
+            int endTurn = rc.getRoundNum();
+            if (startTurn != endTurn) {
+//                System.out.println("Over bytecode limit!");
+            }
             Clock.yield();
         }
     }
@@ -116,6 +121,8 @@ public strictfp class RobotPlayer {
         return tryDodgeBulletsInDirection(maxBytecodes, null);
     }
 
+    static final int MAX_BULLETS_TO_CONSIDER = 25;
+    private static BulletInfo[] relevantBullets = new BulletInfo[MAX_BULLETS_TO_CONSIDER];
     static boolean tryDodgeBulletsInDirection(int maxBytecodes, Direction desiredMovementDir) throws
             GameActionException {
         // in the worse case, we could move one stride. then a bullet at highest speed could strike our body.
@@ -128,9 +135,9 @@ public strictfp class RobotPlayer {
         MapLocation myLoc = rc.getLocation();
 
         // only pick the relevant ones--these actually intersect the circle of radius maxBulletDist
-        BulletInfo[] relevantBullets = new BulletInfo[possiblyRelevantBullets.length];
         int numRelevantBullets = 0;
-        for (int i = 0; i < possiblyRelevantBullets.length; i++) {
+        int max = Math.min(possiblyRelevantBullets.length, MAX_BULLETS_TO_CONSIDER);
+        for (int i = 0; i < max; i++) {
             BulletInfo bullet = possiblyRelevantBullets[i];
 
             Direction dir = myLoc.directionTo(bullet.location);
@@ -655,7 +662,9 @@ public strictfp class RobotPlayer {
         if(tryDodgeBulletsInDirection(maxBytecodes, rc.getLocation().directionTo(target.getLocation()))){
             return true;
         }
-        return tryMoveTo(target.getLocation(), maxBytecodes);
+        // regardless of whether this successfully computes a move, return true since we're almost out of bytecodes
+        tryMoveTo(target.getLocation(), maxBytecodes);
+        return true;
     }
 
     static void reportMapAwareness() throws GameActionException{
@@ -674,7 +683,7 @@ public strictfp class RobotPlayer {
     	}
     }
 
-    static boolean tryAttackEnemy() throws GameActionException {
+    static boolean tryAttackEnemy(int maxBytecodes) throws GameActionException {
         if (enemiesInSight.length == 0) {
             return false;
         }
@@ -687,6 +696,9 @@ public strictfp class RobotPlayer {
         double maxEnemyScore = Double.NEGATIVE_INFINITY;
         RobotInfo bestTarget = null;
         for (RobotInfo enemy : enemiesInSight) {
+            if(Clock.getBytecodeNum() > maxBytecodes){
+                break;
+            }
             // we should also check if there is an unobstructed path to the enemy from here
             // unfortunately, that's complicated. maybe collect all nearby robots and sort by angle? that way we can
             // binary search these kinds of queries.

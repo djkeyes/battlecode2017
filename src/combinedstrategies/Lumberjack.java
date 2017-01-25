@@ -19,13 +19,13 @@ public class Lumberjack extends RobotPlayer implements RobotHandler {
         neutralTreesInVision = rc.senseNearbyTrees(type.sensorRadius, Team.NEUTRAL);
         neutralTreesInInteractionRadius = rc.senseNearbyTrees(type.bodyRadius + GameConstants.INTERACTION_DIST_FROM_EDGE, Team.NEUTRAL);
 
-        if (!tryMoveTowardEnemy(6000)) {
+        if (!tryMoveTowardEnemy(5500)) {
             if (!attacked && neutralTreesInInteractionRadius.length > 0) {
                 // if we've found a neutral tree, don't bother moving at all.
                 chopBest();
                 attacked = true;
             } else if (neutralTreesInVision.length > 0) {
-                tryMoveTowardNeutralTrees(8000);
+                tryMoveTowardNeutralTrees(7500);
                 neutralTreesInVision = rc.senseNearbyTrees(type.sensorRadius, Team.NEUTRAL);
                 // try again
                 if (!attacked && neutralTreesInInteractionRadius.length > 0) {
@@ -37,7 +37,7 @@ public class Lumberjack extends RobotPlayer implements RobotHandler {
                 if (needToMoveAwayFromPack() && turnsAlive < 50 && rc.getRoundNum() < 2500) {
                     moveAwayFromPack();
                 } else {
-                    tryMoveTowardEnemyArchons(8000);
+                    tryMoveTowardEnemyArchons(7500);
                 }
             }
         }

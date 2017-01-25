@@ -15,7 +15,7 @@ public class Tank extends RobotPlayer implements RobotHandler {
     public void onLoop() throws GameActionException {
         // Tank movement is hard, because you can accidentally destroy your own trees.
         // for now, don't move.
-        tryAttackEnemy();
+        tryAttackEnemy(9000);
     }
 
     @Override
