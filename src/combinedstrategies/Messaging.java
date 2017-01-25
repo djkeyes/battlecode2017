@@ -14,19 +14,25 @@ public strictfp class Messaging extends RobotPlayer {
     static final int SOLDIER_COUNT_CHANNEL = 5;
     static final int TANK_COUNT_CHANNEL = 6;
     static final int TREE_COUNT_CHANNEL = 7;
+
+    // useful variables to track when creating rooted gardeners
+    static final int MAXED_GARDENER_COUNT_CHANNEL = 10;
+    static final int TOTAL_TREE_INCOME_CHANNEL = 11;
+
+    // overarching game strategy
+    static final int STRATEGY_CHANNEL = 12;
+
+    // cues for deciding initial build order
+    static final int NEARBY_TREE_HEALTH_CHANNEL = 13;
+    static final int HAS_GIFTS_CHANNEL = 14;
+    static final int INITIAL_BUILD_ORDER_CHANNEL = 15;
+
     // channels for map geometry
     static final int MAP_Y_LOWERLIMIT_CHANNEL = 20;
     static final int MAP_Y_UPPERLIMIT_CHANNEL = 21;
     static final int MAP_X_LOWERLIMIT_CHANNEL = 22;
     static final int MAP_X_UPPERLIMIT_CHANNEL = 23;
 
-    // useful variables to track when creating rooted gardeners
-    static final int MAXED_GARDENER_COUNT_CHANNEL = 10;
-    static final int TOTAL_TREE_INCOME_CHANNEL = 11;
-
-
-    // overarching game strategy
-    static final int STRATEGY_CHANNEL = 12;
 
     // Enemy positions. For now we will reserve 200 channels for this, which is 100 positions (x, y).
     // The detected positions will be stored sequentially and only positions which are not yet registered
@@ -305,4 +311,26 @@ public strictfp class Messaging extends RobotPlayer {
         rc.broadcast(ENEMY_POSITIONS_START_CHANNEL + num_pos * 2, xpos[num_pos]);
         rc.broadcast(ENEMY_POSITIONS_START_CHANNEL + 1 + num_pos * 2, ypos[num_pos]);
     }
+
+    static void setNearbyTreeHealth(float amount) throws GameActionException {
+        int encoded = Float.floatToIntBits(amount);
+        rc.broadcast(NEARBY_TREE_HEALTH_CHANNEL, encoded);
+    }
+    static float getNearbyTreeHealth() throws GameActionException {
+        int encoded = rc.readBroadcast(NEARBY_TREE_HEALTH_CHANNEL);
+        return Float.intBitsToFloat(encoded);
+    }
+    static void setHasGift(boolean hasGift) throws GameActionException {
+        rc.broadcast(HAS_GIFTS_CHANNEL, hasGift? 1 : 0);
+    }
+    static boolean getHasGift() throws GameActionException {
+        return rc.readBroadcast(HAS_GIFTS_CHANNEL) == 1;
+    }
+    static void broadcastInitialBuildOrder(int buildOrder) throws GameActionException {
+        rc.broadcast(INITIAL_BUILD_ORDER_CHANNEL, buildOrder);
+    }
+    static int readInitialBuildOrder() throws GameActionException {
+        return rc.readBroadcast(INITIAL_BUILD_ORDER_CHANNEL);
+    }
+
 }

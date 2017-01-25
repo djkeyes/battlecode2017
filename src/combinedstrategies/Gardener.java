@@ -72,6 +72,8 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
     public void init() throws GameActionException {
         earliestRushTurn = computeEarliestRush();
         turnsAlive = 0;
+
+        BuildOrder.setInitialBuildOrder(Messaging.readInitialBuildOrder());
     }
 
     @Override

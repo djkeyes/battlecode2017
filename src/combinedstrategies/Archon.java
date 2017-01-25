@@ -9,19 +9,124 @@ strictfp class Archon extends RobotPlayer implements RobotHandler {
 
     private boolean builtGardener = false;
 
+    private boolean amITheFirstArchon = false;
+    private boolean amITheClosestArchon = false;
+    private boolean anyTreesWithGifts;
+    private float treeHealthNearby;
+
     static final int[] TURNS_TO_BREAK_EVEN = {Integer.MAX_VALUE, 231, 186, 175, 171, 171, 173, 176, 179, 183, 183};
+
+    private int numArchonsPerTeam;
+    private float minInterArchonDistance;
 
     @Override
     public void init() throws GameActionException {
-        // the first turn is a heartbeat turn, so unit counts aren't updated.
-        // force a manual update (even though some information may only be partially correct)
         if (rc.getRoundNum() == 1) {
+            if (Messaging.archonCount == 0) {
+                amITheFirstArchon = true;
+            }
+            TreeInfo[] neutralTreesNearby = rc.senseNearbyTrees();
+
+            anyTreesWithGifts = false;
+            treeHealthNearby = 0f;
+
+            for (TreeInfo tree : neutralTreesNearby) {
+                if (tree.containedRobot != null) {
+                    anyTreesWithGifts = true;
+                }
+                treeHealthNearby += tree.maxHealth;
+            }
+
+            minInterArchonDistance = Float.POSITIVE_INFINITY;
+            MapLocation[] ourArchons = rc.getInitialArchonLocations(us);
+            MapLocation[] theirArchons = rc.getInitialArchonLocations(them);
+            MapLocation ourClosestLoc = null;
+            for (MapLocation theirs : theirArchons) {
+                for (MapLocation ours : ourArchons) {
+                    float dist = theirs.distanceTo(ours);
+                    if (dist < minInterArchonDistance) {
+                        minInterArchonDistance = dist;
+                        ourClosestLoc = ours;
+                    }
+                }
+            }
+            amITheClosestArchon = rc.getLocation().distanceTo(ourClosestLoc) < 0.1f;
+            numArchonsPerTeam = ourArchons.length;
+
+            if (anyTreesWithGifts) {
+                Messaging.setHasGift(anyTreesWithGifts);
+            }
+            if (!amITheFirstArchon) {
+                treeHealthNearby += Messaging.getNearbyTreeHealth();
+            }
+            Messaging.setNearbyTreeHealth(treeHealthNearby);
+
+            // the first turn is a heartbeat turn, so unit counts aren't updated.
+            // force a manual update (even though some information may only be partially correct)
             Messaging.getUnitCounts();
         }
     }
 
     @Override
     public void onLoop() throws GameActionException {
+
+        if(rc.getRoundNum() <= 2){
+            if(rc.getRoundNum() == 1){
+                return;
+            } else {
+                int buildOrder;
+                // TODO: determine these coefficients by doing a regression over win rates
+                final float RUSH_DISTANCE_THRESHOLD = 37f;
+                final float AVG_TREE_HEALTH_THRESHOLD = 4000f;
+                if (amITheFirstArchon) {
+                    // now that we have information, make a decision
+
+                    if (Messaging.getHasGift()) {
+                        // lumberjack first
+                        buildOrder = BuildOrder.LUMBERJACK_FIRST;
+                    } else if (minInterArchonDistance <= RUSH_DISTANCE_THRESHOLD) {
+                        // soldier first
+                        buildOrder = BuildOrder.SOLDIER_FIRST;
+                    } else if (Messaging.getNearbyTreeHealth() / numArchonsPerTeam >= AVG_TREE_HEALTH_THRESHOLD) {
+                        // lumberjack first
+                        buildOrder = BuildOrder.LUMBERJACK_FIRST;
+                    } else {
+                        // double tree first
+                        buildOrder = BuildOrder.ECONOMIC;
+                    }
+                    Messaging.broadcastInitialBuildOrder(buildOrder);
+                } else {
+                    buildOrder = Messaging.readInitialBuildOrder();
+                }
+                BuildOrder.setInitialBuildOrder(buildOrder);
+
+                // on the first round of construction, different archons may have sensed different things.
+                // If someone saw a tree with a gift, only build a lumberjack if you are that archon.
+                // If it's a good idea to rush, only build a soldier if you're that archon.
+                // If that's impossible (eg DigMeOut), don't do anything. Next turn another archon can pick up the slack.
+                boolean shouldBuildFirst = false;
+                if(buildOrder == BuildOrder.LUMBERJACK_FIRST && anyTreesWithGifts){
+                    // there's gifts, and one is near us
+                    shouldBuildFirst = true;
+                } else if(buildOrder == BuildOrder.SOLDIER_FIRST && amITheClosestArchon){
+                    // it's soldiers, and we're the closest
+                    shouldBuildFirst = true;
+                } else if (buildOrder == BuildOrder.ECONOMIC ||
+                        (buildOrder == BuildOrder.LUMBERJACK_FIRST
+                                && treeHealthNearby > AVG_TREE_HEALTH_THRESHOLD
+                                && !Messaging.getHasGift())) {
+                    // it's economic, or
+                    // it's lumberjacks, and there's lots of trees near us (but no gifts)
+                    shouldBuildFirst = true;
+                }
+
+                if(shouldBuildFirst){
+                    builtGardener = tryBuildGardener();
+                }
+                return;
+            }
+        }
+
 
         // game plan:
         // -make gardeners if our build order decrees it
@@ -48,12 +153,13 @@ strictfp class Archon extends RobotPlayer implements RobotHandler {
             }
         }
 
+
     }
 
     @Override
     public void reportUnitCount() throws GameActionException {
         if (Messaging.shouldSendHeartbeat()) {
-            Messaging.sendHeartbeatSignal(1, builtGardener ? 1 : 0, 0, 0, 0, 0, 0, 0f,0);
+            Messaging.sendHeartbeatSignal(1, builtGardener ? 1 : 0, 0, 0, 0, 0, 0, 0f, 0);
         } else if (builtGardener) {
             Messaging.reportBuiltGardener();
             builtGardener = false;
