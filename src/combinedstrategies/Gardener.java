@@ -304,10 +304,22 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
             boolean canAddTree = canAddNewTree();
             if (needDefences || (!canAddTree && Messaging.currentStrategy == Messaging.MACRO_ARMY_STRATEGY)) {
                 shouldBuildTree = false;
-                if (numUnitsBuilt < 2 || numUnitsBuilt % 2 == 1) {
-                    typeToBuild = RobotType.LUMBERJACK;
-                } else {
+                // if we need defenses immediately, soldiers are usually a more direct counter
+                if(enemiesInSight.length > 0 || Messaging.soldierCount == 0){
                     typeToBuild = RobotType.SOLDIER;
+                } else{
+                    // lumberjacks aren't that great. Only build them if there's work to do
+                    if (numUnitsBuilt % 2 == 1) {
+                        int numNearbyNeutralTrees = rc.senseNearbyTrees(type.sensorRadius - type.bodyRadius - RobotType
+                                .LUMBERJACK.bodyRadius, Team.NEUTRAL).length;
+                        if(numNearbyNeutralTrees > 0 || Messaging.lumberjackCount < 10) {
+                            typeToBuild = RobotType.LUMBERJACK;
+                        } else {
+                            typeToBuild = RobotType.SOLDIER;
+                        }
+                    } else {
+                        typeToBuild = RobotType.SOLDIER;
+                    }
                 }
             } else if (canAddTree) {
                 shouldBuildTree = true;
