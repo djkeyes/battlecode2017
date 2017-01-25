@@ -776,22 +776,22 @@ public strictfp class RobotPlayer {
 						}
 						if (dir == Direction.EAST){
 							Messaging.upperLimitX = lowerbound+(int)rc.getLocation().x;
-							System.out.println("Find x upper bound "+ (lowerbound+(int)rc.getLocation().x));
+//							System.out.println("Find x upper bound "+ (lowerbound+(int)rc.getLocation().x));
 
 						}
 						else if (dir ==Direction.NORTH){
 							Messaging.upperLimitY = lowerbound+(int)rc.getLocation().y;
-							System.out.println("Find y upper bound "+(lowerbound+(int)rc.getLocation().y));
+//							System.out.println("Find y upper bound "+(lowerbound+(int)rc.getLocation().y));
 
 						}
 						else if (dir ==Direction.WEST){
 							Messaging.lowerLimitX = -lowerbound+(int)rc.getLocation().x;
-							System.out.println("Find x lower bound "+(-lowerbound+(int)rc.getLocation().x));
+//							System.out.println("Find x lower bound "+(-lowerbound+(int)rc.getLocation().x));
 
 						}
 						else {
 							Messaging.lowerLimitY = -lowerbound+(int)rc.getLocation().y;
-							System.out.println("Find y lower bound "+(-lowerbound+(int)rc.getLocation().y));
+//							System.out.println("Find y lower bound "+(-lowerbound+(int)rc.getLocation().y));
 
 						}
 

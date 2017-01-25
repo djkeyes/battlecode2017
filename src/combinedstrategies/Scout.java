@@ -168,11 +168,11 @@ public class Scout extends RobotPlayer implements RobotHandler {
 						foundTree = true;
 						if (rc.canShake(nexttree.ID)){
 							rc.shake(nexttree.ID);
-							System.out.println("Shaking");
+//							System.out.println("Shaking");
 							break;
 						}
 						else {
-							System.out.println("moving towards tree");
+//							System.out.println("moving towards tree");
 							tryMove(my_loc.directionTo(nexttree.getLocation()),20,5);
 							break;
 						}
@@ -299,7 +299,7 @@ public class Scout extends RobotPlayer implements RobotHandler {
 					rc.canFireSingleShot() && 
 					my_loc.distanceTo(rc.senseRobot(myOpponentID).getLocation())<= CLOSETOGARDNER *type.bodyRadius){
 				// Fire shot towards the gardener, if path clear and shots ready and close enough
-				System.out.println("Shot fired towards " + myOpponentID + " i am at tree" + myTreeID);
+//				System.out.println("Shot fired towards " + myOpponentID + " i am at tree" + myTreeID);
 				Direction dir = new Direction(my_loc,rc.senseRobot(myOpponentID).getLocation());
 				rc.fireSingleShot(dir);
 			} 	
@@ -347,22 +347,22 @@ public class Scout extends RobotPlayer implements RobotHandler {
 				if (Math.abs(theta) < Math.PI/3){ // Get the closest bullet that would hit
 					MapLocation dodgingSpot;
 					if (myTreeID != 0 || rc.canSenseTree(myTreeID)){ // if currently spotted a tree
-						System.out.println("myTree ID tree:" + myTreeID);
+//						System.out.println("myTree ID tree:" + myTreeID);
 						dodgingSpot= rc.senseTree(myTreeID).getLocation().add(directionToRobot, MINIMUMMOV);
-						System.out.println("Dodge inside tree");
+//						System.out.println("Dodge inside tree");
 					}
 					else {
 						dodgingSpot = my_loc.add(propagationDirection.rotateLeftDegrees(90),2);
-						System.out.println("Dodge outside tree");
+//						System.out.println("Dodge outside tree");
 					}
 					if (rc.canMove(dodgingSpot)){
 						rc.move(dodgingSpot);
-						System.out.println("Dodge successful to wished location");
+//						System.out.println("Dodge successful to wished location");
 						return true;
 					}
 					else{
 						tryMove(propagationDirection.rotateRightDegrees(90),20,3);
-						System.out.println("Dodge successful to wished direction");
+//						System.out.println("Dodge successful to wished direction");
 						return true;
 					}
 						
@@ -376,7 +376,7 @@ public class Scout extends RobotPlayer implements RobotHandler {
 			for (RobotInfo enemy : awareSolider){
 				if (enemy.getType() == RobotType.SOLDIER || enemy.getType() == RobotType.TANK){
 					tryMove(enemy.getLocation().directionTo(my_loc).rotateLeftDegrees(90),45,5);
-					System.out.println("Avoiding enemy soliders");
+//					System.out.println("Avoiding enemy soliders");
 					return true;
 				}
 			}
