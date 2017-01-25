@@ -5,7 +5,6 @@ import battlecode.common.*;
 import java.util.*;
 
 import static bytecodes.Assert.assertEquals;
-import static bytecodes.Assert.assertTrue;
 
 /**
  * Daniel:
@@ -46,6 +45,9 @@ public strictfp class RobotPlayer {
         timeRobotControllerMethods(rc);
         timeMethodReference();
         timeSwitchStatement();
+        Clock.yield();
+
+        timePrinting();
     }
 
     @SuppressWarnings("unused")
@@ -53,6 +55,8 @@ public strictfp class RobotPlayer {
         // TODO(daniel): it would be nice to test the cost of static initialization
         int bytecodesAtStart = Clock.getBytecodeNum();
         System.out.println("bytecodes at start of tests: " + bytecodesAtStart);
+        int bytecodesAfterPrint = Clock.getBytecodeNum();
+        assertEquals(8, bytecodesAfterPrint-bytecodesAtStart);
 
         try {
             runTests(rc);
@@ -545,9 +549,13 @@ public strictfp class RobotPlayer {
         public final void finalNoop() {
         }
     }
+
     private static final class FinalClass {
-        public void noop() {}
-        public final void finalNoop() {}
+        public void noop() {
+        }
+
+        public final void finalNoop() {
+        }
     }
 
     private static int staticVar;
@@ -891,7 +899,7 @@ public strictfp class RobotPlayer {
         before = Clock.getBytecodeNum();
         rc.canSenseRadius(4);
         after = Clock.getBytecodeNum();
-        expected = 4;
+        expected = 9;
         actual = after - before;
         assertEquals(expected, actual);
 
@@ -927,7 +935,9 @@ public strictfp class RobotPlayer {
     private interface VoidInterface {
         void doIt();
     }
-    private static void noop() {}
+
+    private static void noop() {
+    }
 
     public static void timeMethodReference() {
         int before, after;
@@ -958,13 +968,14 @@ public strictfp class RobotPlayer {
     private enum SmallEnum {
         ONE, TWO, THREE;
     }
+
     public static void timeSwitchStatement() {
         int before, after;
         int expected, actual;
 
         int x = 5;
         before = Clock.getBytecodeNum();
-        switch(x){
+        switch (x) {
             case 5:
                 break;
         }
@@ -974,7 +985,7 @@ public strictfp class RobotPlayer {
         assertEquals(expected, actual);
 
         before = Clock.getBytecodeNum();
-        switch(x){
+        switch (x) {
             default:
                 break;
         }
@@ -983,7 +994,7 @@ public strictfp class RobotPlayer {
         actual = after - before;
         assertEquals(expected, actual);
         before = Clock.getBytecodeNum();
-        switch(x){
+        switch (x) {
             case 0:
                 break;
             case 1:
@@ -1004,7 +1015,7 @@ public strictfp class RobotPlayer {
 
         SmallEnum y = SmallEnum.TWO;
         before = Clock.getBytecodeNum();
-        switch(y){
+        switch (y) {
             case ONE:
                 break;
             case TWO:
@@ -1019,7 +1030,7 @@ public strictfp class RobotPlayer {
 
         // same test as before, to check for static initialization
         before = Clock.getBytecodeNum();
-        switch(y){
+        switch (y) {
             case ONE:
                 break;
             case TWO:
@@ -1034,7 +1045,7 @@ public strictfp class RobotPlayer {
 
         // same test as before, to check for static initialization
         before = Clock.getBytecodeNum();
-        switch(y){
+        switch (y) {
             case ONE:
                 break;
             case TWO:
@@ -1048,7 +1059,7 @@ public strictfp class RobotPlayer {
         assertEquals(expected, actual);
 
         before = Clock.getBytecodeNum();
-        switch(y){
+        switch (y) {
             case ONE:
                 break;
             case THREE:
@@ -1062,7 +1073,7 @@ public strictfp class RobotPlayer {
         assertEquals(expected, actual);
 
         before = Clock.getBytecodeNum();
-        switch(y){
+        switch (y) {
             case TWO:
                 break;
         }
@@ -1072,7 +1083,7 @@ public strictfp class RobotPlayer {
         assertEquals(expected, actual);
 
         before = Clock.getBytecodeNum();
-        switch(y){
+        switch (y) {
             default:
                 break;
         }
@@ -1083,7 +1094,7 @@ public strictfp class RobotPlayer {
 
         RobotType z = RobotType.SCOUT;
         before = Clock.getBytecodeNum();
-        switch(z){
+        switch (z) {
             default:
                 break;
         }
@@ -1094,4 +1105,71 @@ public strictfp class RobotPlayer {
 
     }
 
+    public static void timePrinting() {
+        int before, after;
+        int expected, actual;
+
+        before = Clock.getBytecodeNum();
+        System.out.println("timing print function--ignore this line");
+        after = Clock.getBytecodeNum();
+        expected = 3;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        // try again, to ignore static initialization
+        // dk: we print something as the start, so this is unnecessary
+        before = Clock.getBytecodeNum();
+        System.out.println("timing print function--ignore this line");
+        after = Clock.getBytecodeNum();
+        expected = 3;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        System.out.println("timing print function--ignore this line");
+        after = Clock.getBytecodeNum();
+        expected = 3;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        // try a new turn
+        Clock.yield();
+
+        before = Clock.getBytecodeNum();
+        System.out.println();
+        after = Clock.getBytecodeNum();
+        expected = 2;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        System.out.println();
+        after = Clock.getBytecodeNum();
+        expected = 2;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        System.out.println("timing print function--ignore this line");
+        after = Clock.getBytecodeNum();
+        expected = 3;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        String a = "timing print function--";
+        String b = "ignore this line";
+        before = Clock.getBytecodeNum();
+        String c = a + b;
+        after = Clock.getBytecodeNum();
+        expected = 8;
+        actual = after - before;
+        assertEquals(expected, actual);
+
+        before = Clock.getBytecodeNum();
+        System.out.println(a + b);
+        after = Clock.getBytecodeNum();
+        expected = 8;
+        actual = after - before;
+        assertEquals(expected, actual);
+    }
 }
