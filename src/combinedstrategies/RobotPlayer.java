@@ -478,18 +478,36 @@ public strictfp class RobotPlayer {
         return false;
     }
 
-    static boolean needToMoveAwayFromPack() {
-        // check if any gardeners are less than 2*bodyRadius + 4*bulletTreeRadius away
-        // in fact, we actually need more, but ignore that for now
-        for (RobotInfo ally : alliesInSignt) {
-            if (ally.type == RobotType.GARDENER || ally.type == RobotType.ARCHON) {
-                return true;
-            }
+    static final float thresholdDist = 2f * RobotType.GARDENER.bodyRadius
+            + 2f * Gardener.computeTreePlantingDist(Gardener.NUM_TREES_PER_GARDENER)
+            + GameConstants.BULLET_TREE_RADIUS;
 
+    static final boolean SAVE_STUCK_PACK_POSITIONS = true;
+    static final float THRESHOLD_TO_BE_STUCK = 0.1f;
+    static final int STUCK_PACK_POSITIONS_CAPACITY = 5;
+    static int stuckPackPositionHead = 0;
+    static int stuckPackPositionSize = 0;
+    static final MapLocation[] stuckPositions;
+
+    static {
+        if (SAVE_STUCK_PACK_POSITIONS) {
+            stuckPositions = new MapLocation[STUCK_PACK_POSITIONS_CAPACITY];
+        } else {
+            stuckPositions = null;
+        }
+    }
+
+    static boolean needToMoveAwayFromPack() {
+        // check if any gardeners are less than thresholdDist away
+        for (RobotInfo ally : alliesInSignt) {
             // because these are in sorted order, we can terminate early
             if (ally.location.distanceTo(rc.getLocation())
-                    > 2 * RobotType.GARDENER.bodyRadius + 4 * GameConstants.BULLET_TREE_RADIUS + 0.5f) {
+                    > thresholdDist) {
                 break;
+            }
+
+            if (ally.type == RobotType.GARDENER || ally.type == RobotType.ARCHON) {
+                return true;
             }
         }
 
@@ -501,7 +519,9 @@ public strictfp class RobotPlayer {
 
     static void moveAwayFromPack() throws GameActionException {
         // apply a "force"
+        // ask dk if you want to know where these constants came from
         float K = 50.0f;
+        float Kstuck = 350.0f;
         float fx = 0f;
         float fy = 0f;
         for (RobotInfo ally : alliesInSignt) {
@@ -513,14 +533,52 @@ public strictfp class RobotPlayer {
             }
         }
 
+        if(SAVE_STUCK_PACK_POSITIONS) {
+            for (int i = 1; i <= stuckPackPositionSize; ++i) {
+                int idx = stuckPackPositionHead - i;
+                if (idx < 0) {
+                    idx += STUCK_PACK_POSITIONS_CAPACITY;
+                }
+                MapLocation stuckPos = stuckPositions[idx];
+
+                // use dist^3, so that it falls off faster near the edges
+                float dist = stuckPos.distanceTo(rc.getLocation());
+                if (dist > type.sensorRadius * 1.5f) {
+                    continue;
+                }
+                dist = dist * dist * dist;
+                Direction dir;
+                if (dist <= 0.0001f) {
+                    dir = randomDirection();
+                } else {
+                    dir = stuckPos.directionTo(rc.getLocation());
+                }
+
+                fx += dir.getDeltaX(Kstuck) / dist;
+                fy += dir.getDeltaY(Kstuck) / dist;
+            }
+        }
+
         float mag = (float) StrictMath.sqrt(fx * fx + fy * fy);
         Direction dir = new Direction(fx, fy);
 
         if (mag > type.strideRadius) {
             mag = type.strideRadius;
         }
+        boolean moved = tryMove(dir, mag, 10, 10);
 
-        tryMove(dir, mag, 10, 10);
+        if(SAVE_STUCK_PACK_POSITIONS) {
+            if (!moved || mag <= THRESHOLD_TO_BE_STUCK) {
+                // add new stuckPosition
+                stuckPositions[stuckPackPositionHead] = rc.getLocation();
+                if (stuckPackPositionSize < STUCK_PACK_POSITIONS_CAPACITY) {
+                    stuckPackPositionSize++;
+                }
+                // if we're already at capacity, just overwrite the old stuff.
+                stuckPackPositionHead++;
+                stuckPackPositionHead %= STUCK_PACK_POSITIONS_CAPACITY;
+            }
+        }
     }
 
     static boolean isPathToRobotObstructed(RobotInfo other) throws GameActionException {

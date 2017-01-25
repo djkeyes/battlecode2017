@@ -34,7 +34,7 @@ public class Lumberjack extends RobotPlayer implements RobotHandler {
                 }
             } else {
                 // TODO: find a good heuristic for clearing at home vs attacking
-                if (needToMoveAwayFromPack() && turnsAlive < 500 && rc.getRoundNum() < 2500) {
+                if (needToMoveAwayFromPack() && turnsAlive < 50 && rc.getRoundNum() < 2500) {
                     moveAwayFromPack();
                 } else {
                     tryMoveTowardEnemyArchons(8000);

@@ -11,7 +11,32 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
 
     static int earliestRushTurn;
 
+    /**
+     * One problem with trees is that units tend to get stuck. There are many computationally-cheap ways to address
+     * this; here are a few:
+     * -Apply a "force" to move away, until there's space for 2 gardener radii, 2 trees, and for 1 unit to
+     * pass through. ie gardeners centers are R = 2*b + 2*d + t apart, where b=body radius of small units, d=distance
+     * to tree centers, t=tree radius. Note: if because NUM_TREES_PER_GARDENER > 6, then R > 7, so we need to
+     * broadcast gardener positions (TODO). If NUM_TREES_PER_GARDENER = 6, then R is approximately 7, so we can just
+     * check the vision range. Another problem is that robots get stuck in local minima; possible solutions are to
+     * build anyway (maybe the map is too cramped to move anywhere else), or to build new gardeners (maybe the
+     * previous gardener had bad luck) or to record and move away from "stuck" positions (TODO) (but that still has
+     * local minima)
+     * -only allow gardeners to build on grid coordinates. A good grid choice is a triangular grid with distance R.
+     * We still need to store gardener positions, but don't need to compute a magic force, since gardeners can
+     * pathfind to empty positions.
+     * -allow gardeners to move, but only allow trees on a hexagonal grid. Now tree positions need to be stored, so
+     * gardeners don't forget about far-away trees. Compared to clustering strategies, this might be slightly less
+     * space efficient, but it's more defendable against scout rushes.
+     */
+//    private final int BROADCASTED_CLUSTER_STRATEGY = 0;
+//    private final int CLUSTER_ON_GRID_STRATEGY = 1;
+//    private final int GRID_ALIGNED_CLUSTER_STRATEGY = 2;
+//    // TODO: read this as a parameter, and test which one works best
+//    private int PLANTING_STRATEGY = BROADCASTED_CLUSTER_STRATEGY;
+
     // unfortunately with the latest patch, n>7 trees is too far to water without moving
+    // TODO: make gardeners move more freely within their cluster
     static final int NUM_TREES_PER_GARDENER = 6;
     static final float TREE_OFFSET_EPSILON;
     static {
@@ -56,7 +81,7 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
         // TODO: unless we're the very first gardener, maybe we should move away from nearby units first.
         // or at least from nearby gardeners
         // or maybe we should have a messaging flag. if the map is very small/crowded, don't bother spreading.
-        if (!isStationary && turnsAlive <= 10 && rc.getRoundNum() > 5 && needToMoveAwayFromPack()) {
+        if (!isStationary && turnsAlive <= 200 && rc.getRoundNum() > 5 && needToMoveAwayFromPack()) {
             moveAwayFromPack();
         } else {
             if (!isStationary) {
@@ -79,8 +104,6 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
         // maybe if we haven't built any trees at all, we should dodge bullets?
 
         tryWateringNearby();
-
-        donateExcessVictoryPoints();
 
         turnsAlive++;
     }
@@ -120,7 +143,7 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
     static float computeTreePlantingDist(int numTrees){
         double r = GameConstants.BULLET_TREE_RADIUS;
         double theta = (numTrees - 2f) * Math.PI / 2f / numTrees;
-        return (float) (r / StrictMath.cos(theta));
+        return (float) (r / StrictMath.cos(theta)) + TREE_OFFSET_EPSILON;
     }
 
     private void initializeTreePattern() throws GameActionException {
@@ -136,7 +159,7 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
         float d = computeTreePlantingDist(NUM_TREES_PER_GARDENER);
         // due to finite precision of floating point numbers, we offset the tree by a small epsilon
         float plantingDist = d - GameConstants.BULLET_TREE_RADIUS
-                - GameConstants.GENERAL_SPAWN_OFFSET - type.bodyRadius + TREE_OFFSET_EPSILON;
+                - GameConstants.GENERAL_SPAWN_OFFSET - type.bodyRadius;
         float centerRad = (float) (gen.nextDouble() * 2.0 * StrictMath.PI);
         for (int i = 0; i < NUM_TREES_PER_GARDENER; i++) {
             plantingDirs[i] = new Direction((float) (centerRad + 2.0 * Math.PI * i / NUM_TREES_PER_GARDENER));
