@@ -9,16 +9,22 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
     private RobotType typeToBuild;
     private boolean builtUnit;
 
-
     static int earliestRushTurn;
 
-    // TODO: experiment with other build strategies:
-    // -align trees on a grid
-    // -circle builds, but aligned on a grid
-
     // unfortunately with the latest patch, n>7 trees is too far to water without moving
-    static final int NUM_TREES_PER_GARDENER = 7;
-    static final float TREE_OFFSET_EPSILON = 0.0001f;
+    static final int NUM_TREES_PER_GARDENER = 6;
+    static final float TREE_OFFSET_EPSILON;
+    static {
+        // dk: GameConstants.GENERAL_SPAWN_OFFSET=0.01f is unnecessarily large. instead, gardeners position
+        // themselves so that trees are only TREE_OFFSET_EPSILON<<0.01 from the intended position
+        if(NUM_TREES_PER_GARDENER == 6) {
+            // to pack trees tightly with n=6, we actually have to move backwards slightly,
+            // so we are constrained by TREE_OFFSET_EPSILON*2 > GENERAL_SPAWN_OFFSET
+            TREE_OFFSET_EPSILON = 0.00505f;
+        } else {
+            TREE_OFFSET_EPSILON = 0.0001f;
+        }
+    }
 
     private MapLocation centerPosition;
     private boolean treesInitialized = false;
@@ -111,6 +117,12 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
                 + GameConstants.GENERAL_SPAWN_OFFSET + GameConstants.BULLET_TREE_RADIUS);
     }
 
+    static float computeTreePlantingDist(int numTrees){
+        double r = GameConstants.BULLET_TREE_RADIUS;
+        double theta = (numTrees - 2f) * Math.PI / 2f / numTrees;
+        return (float) (r / StrictMath.cos(theta));
+    }
+
     private void initializeTreePattern() throws GameActionException {
         if (treesInitialized) {
             return;
@@ -120,10 +132,8 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
         centerPosition = rc.getLocation();
 
         // create a set of tree positions
-        double r = GameConstants.BULLET_TREE_RADIUS;
-        double theta = (NUM_TREES_PER_GARDENER - 2f) * Math.PI / 2f / NUM_TREES_PER_GARDENER;
         // dist to center of tree
-        float d = (float) (r / StrictMath.cos(theta));
+        float d = computeTreePlantingDist(NUM_TREES_PER_GARDENER);
         // due to finite precision of floating point numbers, we offset the tree by a small epsilon
         float plantingDist = d - GameConstants.BULLET_TREE_RADIUS
                 - GameConstants.GENERAL_SPAWN_OFFSET - type.bodyRadius + TREE_OFFSET_EPSILON;
