@@ -266,8 +266,7 @@ public class Scout extends RobotPlayer implements RobotHandler {
 			
 			if (!tryTreeDodge()){ // No dodging necessary
 		    	if (myOpponentID != 0 && rc.canSenseRobot(myOpponentID)){ // found opposing gardener
-		    		if (myTreeID!= 0 && rc.canSenseTree(myTreeID) && idle < 50 && 
-		    				!rc.isLocationOccupiedByRobot(rc.senseTree(myTreeID).getLocation())){
+		    		if (myTreeID!= 0 && rc.canSenseTree(myTreeID) && idle < 50 ){
 		    			rc.setIndicatorLine(rc.getLocation(),rc.senseTree(myTreeID).getLocation(), 0, 255, 0);
 		    			rc.setIndicatorLine(rc.getLocation(),rc.senseRobot(myOpponentID).getLocation(), 255, 0, 0);
 		    			tryMoveIntoTreeCloseToGardner(); // go up the tree
