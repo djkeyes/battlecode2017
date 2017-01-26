@@ -420,34 +420,75 @@ public strictfp class RobotPlayer {
         return true;
     }
 
-    static boolean tryMove(Direction dir, float degreeOffset, int checksPerSide) throws GameActionException {
-        // daniel: wow, this sucks. rewrite it.
+    static Direction previous_dir;
+    static int previous_side = -2; // -2 for reset, -1 for left, 1 for right.
 
-        // First, try intended direction
+    static boolean tryMove(Direction dir, float degreeOffset,
+    int checksPerSide) throws GameActionException {
+        // If we can go straight, go straight.
         if (rc.canMove(dir)) {
-            rc.move(dir);
-            return true;
-        }
-
-        // Now try a bunch of similar angles
-        boolean moved = false;
-        int currentCheck = 1;
-
-        while (currentCheck <= checksPerSide) {
-            // Try the offset of the left side
-            if (rc.canMove(dir.rotateLeftDegrees(degreeOffset * currentCheck))) {
-                rc.move(dir.rotateLeftDegrees(degreeOffset * currentCheck));
+            if (rc.getType() == RobotType.SCOUT || previous_side == -2 ||
+            (!rc.isCircleOccupiedExceptByThisRobot(rc.getLocation().add(dir,
+            0.5f * type.bodyRadius), type.bodyRadius) && (
+                Math.abs(previous_dir.radiansBetween(dir)) < Math.PI * 0.4f ||
+                !rc.isCircleOccupiedExceptByThisRobot(rc.getLocation().add(dir,
+            3.5f * type.bodyRadius), 2.5f * type.bodyRadius)))) {
+                rc.move(dir);
+                if (gen.nextDouble() < 0.3)
+                    previous_side = -2;
                 return true;
             }
-            // Try the offset on the right side
-            if (rc.canMove(dir.rotateRightDegrees(degreeOffset * currentCheck))) {
-                rc.move(dir.rotateRightDegrees(degreeOffset * currentCheck));
-                return true;
-            }
-            // No move performed, try slightly further
-            currentCheck++;
         }
 
+        // Otherwise if we don't have a side, choose a random side.
+        if (previous_side == -2) {
+            previous_side = (int)((float) gen.nextDouble() + 0.5) * 2 - 1;
+            previous_dir = dir;
+        }
+
+        if (rc.canMove(previous_dir) &&
+                !rc.isCircleOccupiedExceptByThisRobot(rc.getLocation().add(
+                            previous_dir, type.strideRadius), type.bodyRadius)) {
+            int currentCheck = 1;
+            Direction new_dir;
+            while (currentCheck++ <= checksPerSide) {
+                if (previous_side == -1)
+                    new_dir = previous_dir.rotateRightDegrees(degreeOffset);
+                else if (previous_side == 1)
+                    new_dir = previous_dir.rotateLeftDegrees(degreeOffset);
+                else
+                    break;
+                if (!rc.canMove(new_dir)) {
+                    rc.move(previous_dir);
+                    return true;
+                }
+                previous_dir = new_dir;
+            }
+        } else {
+            int currentCheck = 1;
+            Direction new_dir;
+            while (currentCheck++ <= checksPerSide) {
+                if (previous_side == -1)
+                    new_dir = previous_dir.rotateLeftDegrees(degreeOffset);
+                else if (previous_side == 1)
+                    new_dir = previous_dir.rotateRightDegrees(degreeOffset);
+                else
+                    break;
+                if (rc.canMove(new_dir)) {
+                    rc.move(new_dir);
+                    previous_dir = new_dir;
+                    return true;
+                }
+                previous_dir = new_dir;
+            }
+        }
+
+        Direction random_dir = randomDirection();
+        if (rc.canMove(random_dir)) {
+            rc.move(random_dir);
+        }
+        previous_dir = dir;
+        //previous_side = -2;
         // A move never happened, so return false.
         return false;
     }
@@ -618,7 +659,7 @@ public strictfp class RobotPlayer {
         // target each one in order
 
         int idx = (rc.getRoundNum() / 200) % archonLocs.length;
-        return tryMoveTo(archonLocs[idx], maxBytecodes);
+        return tryMove(rc.getLocation().directionTo(archonLocs[idx]), 13.0f, 12);
     }
 
 
@@ -663,9 +704,9 @@ public strictfp class RobotPlayer {
             return true;
         }
         // regardless of whether this successfully computes a move, return true since we're almost out of bytecodes
-        tryMoveTo(target.getLocation(), maxBytecodes);
+        tryMove(rc.getLocation().directionTo(target.getLocation()), 13.0f, 12);
         return true;
-    }
+        }
 
     static void reportMapAwareness() throws GameActionException{
     	detectMapBoundary();
