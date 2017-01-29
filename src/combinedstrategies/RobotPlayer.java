@@ -603,6 +603,7 @@ public strictfp class RobotPlayer {
                 Direction dir;
                 if (dist <= 0.0001f) {
                     dir = randomDirection();
+                    dist = 0.0001f;
                 } else {
                     dir = stuckPos.directionTo(rc.getLocation());
                 }
