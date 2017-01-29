@@ -96,7 +96,7 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
                 if (shouldBuildTree) {
                     buildTree();
                 } else if (typeToBuild != null) {
-                    builtUnit = tryBuildRobot();
+                    builtUnit = tryBuildRobot(8000);
                 }
             } else {
                 tryReturnToCenter();
@@ -257,7 +257,7 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
         }
     }
 
-    private boolean tryBuildRobot() throws GameActionException {
+    private boolean tryBuildRobot(int maxBytecodes) throws GameActionException {
         // TODO check locations in a more structured way
         // for example, check nearby units and detect free space. alternatively, since trees are in a pattern, try
         // building in holes in the pattern.
@@ -281,8 +281,7 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
         }
 
         // then just try adjacent positions. maybe someone else is in the way.
-        int numRetries = 20;
-        for (int i = 0; i < numRetries; i++) {
+        while (Clock.getBytecodeNum() < maxBytecodes) {
             Direction dir = randomDirection();
             if (rc.canBuildRobot(typeToBuild, dir)) {
                 rc.buildRobot(typeToBuild, dir);

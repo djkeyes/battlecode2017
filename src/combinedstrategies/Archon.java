@@ -120,8 +120,13 @@ strictfp class Archon extends RobotPlayer implements RobotHandler {
                     shouldBuildFirst = true;
                 }
 
-                if(shouldBuildFirst){
-                    builtGardener = tryBuildGardener();
+                if (shouldBuildFirst) {
+                    builtGardener = tryBuildGardener(10000);
+                }
+                // can't build? try moving and then building
+                if (!builtGardener) {
+                    tryMove(randomDirection(), 180, 50);
+                    builtGardener = tryBuildGardener(18000);
                 }
                 return;
             }
@@ -140,10 +145,10 @@ strictfp class Archon extends RobotPlayer implements RobotHandler {
         if (Messaging.gardenerCount <= 15
                 && (Messaging.gardenerCount < 4
                 || Messaging.soldierCount + Messaging.lumberjackCount + Messaging.tankCount > 3 * Messaging.gardenerCount)) {
-            builtGardener = tryBuildGardener();
+            builtGardener = tryBuildGardener(14000);
         }
 
-        if (!tryDodgeBullets(10000)) {
+        if (!tryDodgeBullets(16000)) {
             if (needToMoveAwayFromPack()) {
                 // maybe we should always try to stay on the exterior of the convex hull of trees? otherwise we could
                 // get stuck in a minimum.
@@ -166,7 +171,7 @@ strictfp class Archon extends RobotPlayer implements RobotHandler {
         }
     }
 
-    boolean tryBuildGardener() throws GameActionException {
+    boolean tryBuildGardener(int maxBytecodes) throws GameActionException {
         if (!rc.isBuildReady()) {
             return false;
         }
@@ -189,9 +194,7 @@ strictfp class Archon extends RobotPlayer implements RobotHandler {
 
         // TODO: check adjacent units to find an unobstructed direction
         // we could also check for bullets, but we'd have to look 20 turns ahead.
-        // TODO: determine numRetries adaptively based on num bytecodes left
-        int numRetries = 10;
-        for (int i = 0; i < numRetries; i++) {
+        while(Clock.getBytecodeNum() < maxBytecodes){
             Direction dir = randomDirection();
             if (rc.canHireGardener(dir)) {
                 rc.hireGardener(dir);
