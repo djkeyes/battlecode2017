@@ -313,7 +313,7 @@ public class Scout extends RobotPlayer implements RobotHandler {
 
 		static void tryFindEnemyFarmers() throws GameActionException {
 			if (rc.readBroadcast(SCOUTFOUNDFARMERXCHANNEL)== 0){
-				tryMoveTowardEnemyArchons(8000); // No enemy spotted, go ahead find someone
+				tryMoveTowardEnemyArchons(12000); // No enemy spotted, go ahead find someone
 			}
 			else {
 				tryMove(my_loc.directionTo(new MapLocation((float)rc.readBroadcast(SCOUTFOUNDFARMERXCHANNEL),

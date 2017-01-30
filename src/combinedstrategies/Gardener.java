@@ -129,7 +129,7 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
                 if (shouldBuildTree) {
                     buildTree();
                 } else if (typeToBuild != null) {
-                    builtUnit = tryBuildRobot(8000);
+                    builtUnit = tryBuildRobot(13000);
                 }
             } else {
                 tryReturnToCenter();
