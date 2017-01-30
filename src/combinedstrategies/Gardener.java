@@ -29,11 +29,7 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
      * gardeners don't forget about far-away trees. Compared to clustering strategies, this might be slightly less
      * space efficient, but it's more defendable against scout rushes.
      */
-//    private final int BROADCASTED_CLUSTER_STRATEGY = 0;
-//    private final int CLUSTER_ON_GRID_STRATEGY = 1;
-//    private final int GRID_ALIGNED_CLUSTER_STRATEGY = 2;
-//    // TODO: read this as a parameter, and test which one works best
-//    private int PLANTING_STRATEGY = BROADCASTED_CLUSTER_STRATEGY;
+    private VoidMethod constructionMethod;
 
     // unfortunately with the latest patch, n>7 trees is too far to water without moving
     // TODO: make gardeners move more freely within their cluster
@@ -73,6 +69,12 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
         earliestRushTurn = computeEarliestRush();
         turnsAlive = 0;
 
+        if (true) {
+            constructionMethod = this::buildNaiveClusters;
+        } else {
+            constructionMethod = this::buildTreeGrid;
+        }
+
         BuildOrder.setInitialBuildOrder(Messaging.readInitialBuildOrder());
     }
 
@@ -80,32 +82,8 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
     public void onLoop() throws GameActionException {
         builtUnit = false;
 
-        // TODO: unless we're the very first gardener, maybe we should move away from nearby units first.
-        // or at least from nearby gardeners
-        // or maybe we should have a messaging flag. if the map is very small/crowded, don't bother spreading.
-        if (!isStationary && turnsAlive <= 200 && rc.getRoundNum() > 5 && needToMoveAwayFromPack()) {
-            moveAwayFromPack();
-        } else {
-            if (!isStationary) {
-                isStationary = true;
-                initializeTreePattern();
-            }
-            // attempt to build a tree or unit
-            if (rc.getBuildCooldownTurns() == 0) {
-                determineWhatToBuild();
-                if (shouldBuildTree) {
-                    buildTree();
-                } else if (typeToBuild != null) {
-                    builtUnit = tryBuildRobot(8000);
-                }
-            } else {
-                tryReturnToCenter();
-            }
-        }
-
+        constructionMethod.invoke();
         // maybe if we haven't built any trees at all, we should dodge bullets?
-
-        tryWateringNearby();
 
         turnsAlive++;
     }
@@ -135,6 +113,31 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
             }
         }
 
+    }
+
+    private void buildNaiveClusters() throws GameActionException {
+        // TODO: broadcast current robot centers
+        if (!isStationary && turnsAlive <= 200 && rc.getRoundNum() > 5 && needToMoveAwayFromPack()) {
+            moveAwayFromPack();
+        } else {
+            if (!isStationary) {
+                isStationary = true;
+                initializeTreePattern();
+            }
+            // attempt to build a tree or unit
+            if (rc.getBuildCooldownTurns() == 0) {
+                determineWhatToBuild();
+                if (shouldBuildTree) {
+                    buildTree();
+                } else if (typeToBuild != null) {
+                    builtUnit = tryBuildRobot(8000);
+                }
+            } else {
+                tryReturnToCenter();
+            }
+        }
+
+        tryWateringNearby();
     }
 
     private MapLocation computeTreePosition(int treeIdx) {
@@ -291,6 +294,10 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
             }
         }
         return false;
+    }
+
+    private void buildTreeGrid() throws GameActionException {
+        // TODO
     }
 
     private void determineWhatToBuild() throws GameActionException {
