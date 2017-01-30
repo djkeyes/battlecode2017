@@ -116,21 +116,32 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
 
     private void buildNaiveClusters() throws GameActionException {
         // TODO: broadcast current robot centers
+
+        // check what to build
+        if (rc.getBuildCooldownTurns() == 0) {
+            determineWhatToBuild();
+        } else {
+            shouldBuildTree = false;
+            typeToBuild = null;
+        }
+
         if (!isStationary && turnsAlive <= 200 && rc.getRoundNum() > 5 && needToMoveAwayFromPack()) {
             moveAwayFromPack();
+
+            // even if we're not stationary, we can still build robots
+            if (typeToBuild != null) {
+                builtUnit = tryBuildRobot(13000);
+            }
         } else {
             if (!isStationary) {
                 isStationary = true;
                 initializeTreePattern();
             }
-            // attempt to build a tree or unit
-            if (rc.getBuildCooldownTurns() == 0) {
-                determineWhatToBuild();
-                if (shouldBuildTree) {
-                    buildTree();
-                } else if (typeToBuild != null) {
-                    builtUnit = tryBuildRobot(13000);
-                }
+
+            if (shouldBuildTree) {
+                buildTree();
+            } else if (typeToBuild != null) {
+                builtUnit = tryBuildRobot(13000);
             } else {
                 tryReturnToCenter();
             }
@@ -268,16 +279,18 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
         }
 
         // first check planting locations
-        for (int i = 0; i < NUM_TREES_PER_GARDENER; i++) {
-            MapLocation buildLoc = computeTreePosition(i);
-            if (rc.canMove(plantingPositions[i])
-                    && rc.onTheMap(buildLoc, typeToBuild.bodyRadius)
-                    && !rc.isCircleOccupied(buildLoc, typeToBuild.bodyRadius)) {
-                rc.move(plantingPositions[i]);
-                rc.buildRobot(typeToBuild, plantingDirs[i]);
-                inConstruction.enqueue(typeToBuild, rc.getRoundNum() + 20);
-                numUnitsBuilt++;
-                return true;
+        if(plantingPositions[0] != null) {
+            for (int i = 0; i < NUM_TREES_PER_GARDENER; i++) {
+                MapLocation buildLoc = computeTreePosition(i);
+                if (rc.canMove(plantingPositions[i])
+                        && rc.onTheMap(buildLoc, typeToBuild.bodyRadius)
+                        && !rc.isCircleOccupied(buildLoc, typeToBuild.bodyRadius)) {
+                    rc.move(plantingPositions[i]);
+                    rc.buildRobot(typeToBuild, plantingDirs[i]);
+                    inConstruction.enqueue(typeToBuild, rc.getRoundNum() + 20);
+                    numUnitsBuilt++;
+                    return true;
+                }
             }
         }
 
