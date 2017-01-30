@@ -424,7 +424,7 @@ public strictfp class RobotPlayer {
     static int previous_side = -2; // -2 for reset, -1 for left, 1 for right.
 
     static boolean tryMove(Direction dir, float degreeOffset,
-    int checksPerSide) throws GameActionException {
+                           int checksPerSide) throws GameActionException {
         // If we can go straight, go straight, but not always. The problem occurs if we are moving
         // alongside an obstacle that makes us move away from the goal, so we try to look ahead
         // before moving forward (that is why these isCircleOccupied checks).
@@ -433,8 +433,7 @@ public strictfp class RobotPlayer {
             (!rc.isCircleOccupiedExceptByThisRobot(rc.getLocation().add(dir,
             0.5f * type.bodyRadius), type.bodyRadius) && (
                 Math.abs(previous_dir.radiansBetween(dir)) < Math.PI * 0.4f ||
-                !rc.isCircleOccupiedExceptByThisRobot(rc.getLocation().add(dir,
-            3.5f * type.bodyRadius), 2.5f * type.bodyRadius)))) {
+                !rc.isCircleOccupiedExceptByThisRobot(rc.getLocation().add(dir, 3.5f), 2.5f)))) {
                 rc.move(dir);
                 if (gen.nextDouble() < 0.3)
                     previous_side = -2;
