@@ -61,7 +61,6 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
 
     private int isMaxed = 0;
     private float adjacentTreeIncome = 0f;
-    private int adjacentTreeNum = 0;
     private int numUnitsBuilt = 0;
 
     @Override
@@ -95,7 +94,7 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
             examineAdjacentTrees();
             Messaging.sendHeartbeatSignal(0, 1, inConstruction.numLumberjacks,
                     inConstruction.numScouts, inConstruction.numSoldiers, inConstruction.numTanks, isMaxed,
-                    adjacentTreeIncome,adjacentTreeNum);
+                    adjacentTreeIncome);
         } else if (builtUnit) {
             switch (typeToBuild) {
                 case SCOUT:
@@ -245,7 +244,6 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
 
         }
         adjacentTreeIncome = GameConstants.BULLET_TREE_BULLET_PRODUCTION_RATE * totalTreeHealth;
-        adjacentTreeNum = numTrees;
         // 2-tree leeway
         if (numTrees >= numTreesPossible - 2) {
             isMaxed = 1;

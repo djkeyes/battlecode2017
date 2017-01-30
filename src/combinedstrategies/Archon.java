@@ -164,7 +164,7 @@ strictfp class Archon extends RobotPlayer implements RobotHandler {
     @Override
     public void reportUnitCount() throws GameActionException {
         if (Messaging.shouldSendHeartbeat()) {
-            Messaging.sendHeartbeatSignal(1, builtGardener ? 1 : 0, 0, 0, 0, 0, 0, 0f, 0);
+            Messaging.sendHeartbeatSignal(1, builtGardener ? 1 : 0, 0, 0, 0, 0, 0, 0f);
         } else if (builtGardener) {
             Messaging.reportBuiltGardener();
             builtGardener = false;

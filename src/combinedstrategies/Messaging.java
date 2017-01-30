@@ -13,7 +13,6 @@ public strictfp class Messaging extends RobotPlayer {
     static final int SCOUT_COUNT_CHANNEL = 4;
     static final int SOLDIER_COUNT_CHANNEL = 5;
     static final int TANK_COUNT_CHANNEL = 6;
-    static final int TREE_COUNT_CHANNEL = 7;
 
     // useful variables to track when creating rooted gardeners
     static final int MAXED_GARDENER_COUNT_CHANNEL = 10;
@@ -56,7 +55,6 @@ public strictfp class Messaging extends RobotPlayer {
     static int tankCount = 0;
     static int maxedGardenerCount = 0;
     static float totalTreeIncome = 0;
-    static int treeCount = 0;
     static int itemBuiltCount = 0; // Including units built and tree planted
 
     static int lowerLimitX = 0;
@@ -103,11 +101,8 @@ public strictfp class Messaging extends RobotPlayer {
         soldierCount = rc.readBroadcast(SOLDIER_COUNT_CHANNEL);
         tankCount = rc.readBroadcast(TANK_COUNT_CHANNEL);
         maxedGardenerCount = rc.readBroadcast(MAXED_GARDENER_COUNT_CHANNEL);
-        int encodedTreeIncome = rc.readBroadcast(TOTAL_TREE_INCOME_CHANNEL);
-        treeCount = rc.readBroadcast(TREE_COUNT_CHANNEL);
-        totalTreeIncome = Float.intBitsToFloat(encodedTreeIncome);
-        itemBuiltCount = gardenerCount + lumberjackCount + scoutCount + soldierCount + tankCount +
-                         treeCount;
+        totalTreeIncome = rc.readBroadcastFloat(TOTAL_TREE_INCOME_CHANNEL);
+        itemBuiltCount = gardenerCount + lumberjackCount + scoutCount + soldierCount + tankCount + rc.getTreeCount();
 //        System.out.printf("[A: %d, G: %d, L: %d, Sct: %d, Sdr: %d, T: %d, MaxedG: %d, Inc: %.4f, Tr: %d]\n",
 //                archonCount, gardenerCount, lumberjackCount, scoutCount, soldierCount, tankCount, maxedGardenerCount,
 //                totalTreeIncome,treeCount);
@@ -119,8 +114,7 @@ public strictfp class Messaging extends RobotPlayer {
     }
 
     static void sendHeartbeatSignal(int numArchons, int numGardeners, int numLumberjacks, int numScouts,
-                                    int numSoldiers, int numTanks, int numMaxedGardeners, float treeIncome,
-                                    int numTrees) throws GameActionException {
+                                    int numSoldiers, int numTanks, int numMaxedGardeners, float treeIncome) throws GameActionException {
         // TODO: a common use case is to have exactly 1 non-zero argument. maybe we should separate this into n
         // separate methods?
 
@@ -137,9 +131,7 @@ public strictfp class Messaging extends RobotPlayer {
             rc.broadcast(SOLDIER_COUNT_CHANNEL, numSoldiers);
             rc.broadcast(TANK_COUNT_CHANNEL, numTanks);
             rc.broadcast(MAXED_GARDENER_COUNT_CHANNEL, numMaxedGardeners);
-            int encodedIncome = Float.floatToIntBits(treeIncome);
-            rc.broadcast(TOTAL_TREE_INCOME_CHANNEL, encodedIncome);
-            rc.broadcast(TREE_COUNT_CHANNEL, numTrees);
+            rc.broadcastFloat(TOTAL_TREE_INCOME_CHANNEL, treeIncome);
         } else {
             // otherwise send only as necessary
             if (numArchons > 0) {
@@ -171,14 +163,8 @@ public strictfp class Messaging extends RobotPlayer {
                 rc.broadcast(MAXED_GARDENER_COUNT_CHANNEL, numMaxedGardeners);
             }
             if (treeIncome > 0) {
-                int encodedTreeIncome = rc.readBroadcast(TOTAL_TREE_INCOME_CHANNEL);
-                treeIncome += Float.intBitsToFloat(encodedTreeIncome);
-                int encodedIncome = Float.floatToIntBits(treeIncome);
-                rc.broadcast(TOTAL_TREE_INCOME_CHANNEL, encodedIncome);
-            }
-            if (numTrees > 0) {
-                numTrees += rc.readBroadcast(TREE_COUNT_CHANNEL);
-                rc.broadcast(TREE_COUNT_CHANNEL, numTrees);
+                treeIncome += rc.readBroadcastFloat(TOTAL_TREE_INCOME_CHANNEL);
+                rc.broadcastFloat(TOTAL_TREE_INCOME_CHANNEL, treeIncome);
             }
         }
     }
@@ -313,18 +299,16 @@ public strictfp class Messaging extends RobotPlayer {
     }
 
     static void setNearbyTreeHealth(float amount) throws GameActionException {
-        int encoded = Float.floatToIntBits(amount);
-        rc.broadcast(NEARBY_TREE_HEALTH_CHANNEL, encoded);
+        rc.broadcastFloat(NEARBY_TREE_HEALTH_CHANNEL, amount);
     }
     static float getNearbyTreeHealth() throws GameActionException {
-        int encoded = rc.readBroadcast(NEARBY_TREE_HEALTH_CHANNEL);
-        return Float.intBitsToFloat(encoded);
+        return rc.readBroadcastFloat(NEARBY_TREE_HEALTH_CHANNEL);
     }
     static void setHasGift(boolean hasGift) throws GameActionException {
-        rc.broadcast(HAS_GIFTS_CHANNEL, hasGift? 1 : 0);
+        rc.broadcastBoolean(HAS_GIFTS_CHANNEL, hasGift);
     }
     static boolean getHasGift() throws GameActionException {
-        return rc.readBroadcast(HAS_GIFTS_CHANNEL) == 1;
+        return rc.readBroadcastBoolean(HAS_GIFTS_CHANNEL);
     }
     static void broadcastInitialBuildOrder(int buildOrder) throws GameActionException {
         rc.broadcast(INITIAL_BUILD_ORDER_CHANNEL, buildOrder);
