@@ -147,15 +147,16 @@ strictfp class Archon extends RobotPlayer implements RobotHandler {
                 || Messaging.soldierCount + Messaging.lumberjackCount + Messaging.tankCount > 3 * Messaging.gardenerCount)) {
             builtGardener = tryBuildGardener(14000);
         }
-
-        if (!tryDodgeBullets(16000)) {
-            if (needToMoveAwayFromPack()) {
-                // maybe we should always try to stay on the exterior of the convex hull of trees? otherwise we could
-                // get stuck in a minimum.
-                moveAwayFromPack();
-            } else {
-                tryMove(randomDirection(), 20, 10);
-            }
+        if (!tryKiteLumberJacks(15000)){
+	        if (!tryDodgeBullets(16000)) {
+	            if (needToMoveAwayFromPack()) {
+	                // maybe we should always try to stay on the exterior of the convex hull of trees? otherwise we could
+	                // get stuck in a minimum.
+	                moveAwayFromPack();
+	            } else {
+	                tryMove(randomDirection(), 20, 10);
+	            }
+	        }
         }
 
 

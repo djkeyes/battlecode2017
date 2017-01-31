@@ -125,7 +125,8 @@ public strictfp class RobotPlayer {
     }
 
     static final int MAX_LUMBERJACKS_TO_CONSIDER = 3;
-    static final int LUMBERJACK_TO_CLOSE = 2;
+    static final float LUMBERJACK_TO_CLOSE = RobotType.LUMBERJACK.strideRadius+
+    			GameConstants.LUMBERJACK_STRIKE_RADIUS + RobotType.LUMBERJACK.bodyRadius+0.001f;
     private static RobotInfo[] relevantLJs = new RobotInfo[MAX_LUMBERJACKS_TO_CONSIDER];
     static boolean tryKiteLumberJacks(int maxBytecodes, Direction desiredMovementDir) throws
     	GameActionException{
@@ -134,23 +135,33 @@ public strictfp class RobotPlayer {
     	int relevant_LJ_counter = 0;
     	float SaftyDistance = 0;
     	for (RobotInfo enemy : enemiesInSight){
-    		if (enemy.getType() == RobotType.LUMBERJACK)
+    		if (enemy.getType() == RobotType.LUMBERJACK && enemy.getLocation().distanceTo(rc.getLocation())<=
+    		LUMBERJACK_TO_CLOSE)
     		{
     			relevantLJs[relevant_LJ_counter] = enemy;
-    			relevant_LJ_counter ++;
+    			relevant_LJ_counter +=1;
     			SaftyDistance += (enemy.getLocation().distanceTo(rc.getLocation())-
-    					LUMBERJACK_TO_CLOSE*RobotType.LUMBERJACK.strideRadius);
+    					LUMBERJACK_TO_CLOSE);
+    			System.out.println("Found Lumberjack with distance " + SaftyDistance);
     		}
     		else if (relevant_LJ_counter >= 2 || enemy.getLocation().distanceTo(rc.getLocation())>
-    		LUMBERJACK_TO_CLOSE*RobotType.LUMBERJACK.strideRadius){
+    		LUMBERJACK_TO_CLOSE){
     			// Only consider if the enemy lj would be able to attack in the next round
     			break;
     		}
     	}
-    	if (relevant_LJ_counter == 0) return false;
+    	if (relevant_LJ_counter == 0) {
+    		System.out.println("No relevant enemy LJ");
+    		return false;
+    	}
     	
     	// Move part, basicly same idea as in bullet dodge, sample and find best spot on the stride edges
-        MapLocation bestLocation = null;
+        MapLocation bestLocation = rc.getLocation().
+        			add(relevantLJs[0].getLocation().directionTo(rc.getLocation()),type.strideRadius);
+        if (!rc.canMove(bestLocation)){
+        	bestLocation = null;
+        }
+        // Opposite from the closest enemy always a good starting point
 
         double thetaOffset = 0;
         double maxTheta = 2.0 * StrictMath.PI;
@@ -162,7 +173,7 @@ public strictfp class RobotPlayer {
         double theta;
         float maxSaftyDistance = SaftyDistance;
         // Now try all directions see if this direction escapes the unit away from LJ
-        while (SaftyDistance < 0f && Clock.getBytecodeNum() < maxBytecodes) {
+        while (maxSaftyDistance < 0f && Clock.getBytecodeNum() < maxBytecodes) {
             // uniformly sample edges of stride space
 
             theta = thetaOffset + maxTheta * gen.nextDouble();
@@ -177,9 +188,11 @@ public strictfp class RobotPlayer {
         }
 
         if(bestLocation == null){
+        	System.out.println("No escape found from LJ");           
             return false;
         }
-        rc.move(bestLocation);
+        rc.move(bestLocation); 
+        System.out.println("Moving to saftey from LJ");
         return true;
     }
 
@@ -188,7 +201,7 @@ public strictfp class RobotPlayer {
     	float saftydistance = 0;
 		for (int i = 0; i < relevant_LJ_counter; i++){
 			saftydistance += (relevantLJs[i].getLocation().distanceTo(rc.getLocation())-
-					LUMBERJACK_TO_CLOSE*RobotType.LUMBERJACK.strideRadius);
+					LUMBERJACK_TO_CLOSE);
 		}
 		return saftydistance;
 	}
