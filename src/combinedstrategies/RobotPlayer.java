@@ -142,7 +142,7 @@ public strictfp class RobotPlayer {
     			relevant_LJ_counter +=1;
     			SaftyDistance += (enemy.getLocation().distanceTo(rc.getLocation())-
     					LUMBERJACK_TO_CLOSE);
-    			System.out.println("Found Lumberjack with distance " + SaftyDistance);
+//    			System.out.println("Found Lumberjack with distance " + SaftyDistance);
     		}
     		else if (relevant_LJ_counter >= 2 || enemy.getLocation().distanceTo(rc.getLocation())>
     		LUMBERJACK_TO_CLOSE){
@@ -151,7 +151,7 @@ public strictfp class RobotPlayer {
     		}
     	}
     	if (relevant_LJ_counter == 0) {
-    		System.out.println("No relevant enemy LJ");
+//    		System.out.println("No relevant enemy LJ");
     		return false;
     	}
     	
@@ -188,11 +188,11 @@ public strictfp class RobotPlayer {
         }
 
         if(bestLocation == null){
-        	System.out.println("No escape found from LJ");           
+//        	System.out.println("No escape found from LJ");
             return false;
         }
         rc.move(bestLocation); 
-        System.out.println("Moving to saftey from LJ");
+//        System.out.println("Moving to saftey from LJ");
         return true;
     }
 
