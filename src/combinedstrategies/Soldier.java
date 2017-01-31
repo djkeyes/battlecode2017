@@ -19,8 +19,8 @@ public class Soldier extends RobotPlayer implements RobotHandler {
 						tryMoveTowardEnemyArchons(12500);
 					}
 				}
-				tryAttackEnemy(13000);
 			}
+			tryAttackEnemy(13000);
 		}
 	}
 
