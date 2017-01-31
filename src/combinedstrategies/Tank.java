@@ -64,7 +64,7 @@ public class Tank extends RobotPlayer implements RobotHandler {
 
     private static boolean anyAlliedTreesInLoc(MapLocation loc) {
         for (TreeInfo alliedTree : alliedTreesInStride) {
-            if (loc.distanceTo(alliedTree.location) <= type.bodyRadius + 0.001f) {
+            if (loc.distanceTo(alliedTree.location) <= alliedTree.radius + type.bodyRadius + 0.001f) {
                 return true;
             }
         }
