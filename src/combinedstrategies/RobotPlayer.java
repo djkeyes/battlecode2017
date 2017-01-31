@@ -912,7 +912,7 @@ public strictfp class RobotPlayer {
         double maxEnemyScore = Double.NEGATIVE_INFINITY;
         RobotInfo bestTarget = null;
         for (RobotInfo enemy : enemiesInSight) {
-            if(Clock.getBytecodeNum() > maxBytecodes){
+            if (Clock.getBytecodeNum() > maxBytecodes) {
                 break;
             }
             // we should also check if there is an unobstructed path to the enemy from here
@@ -929,7 +929,7 @@ public strictfp class RobotPlayer {
         }
 
         if (bestTarget != null) {
-            if(type == RobotType.SOLDIER) {
+            if (type == RobotType.SOLDIER) {
                 Direction dir = rc.getLocation().directionTo(bestTarget.location);
                 double dist = rc.getLocation().distanceTo(bestTarget.location);
                 // determine best kind of shot to fire
@@ -958,13 +958,13 @@ public strictfp class RobotPlayer {
                     rc.firePentadShot(dir);
                 } else {
                     // do we care about friendly fire? I GUESS NOT
-                    if(effectiveDist > 5f && rc.canFireTriadShot()){
+                    if (effectiveDist > 5f && rc.canFireTriadShot()) {
                         // tri, unlikely to hit
                         rc.fireTriadShot(dir);
-                    } else if(rc.canFirePentadShot()){
+                    } else if (rc.canFirePentadShot()) {
                         // penta
                         rc.firePentadShot(dir);
-                    } else if(rc.canFireSingleShot()){
+                    } else if (rc.canFireSingleShot()) {
                         // out of money? not sure
                         rc.fireSingleShot(dir);
                     }
