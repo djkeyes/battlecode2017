@@ -94,6 +94,12 @@ if (!project.hasProperty("teamA")) {
 if (!project.hasProperty("teamB")) {
     ext.teamB = "examplefuncsplayer"
 }
+if (!project.hasProperty("paramA")) {
+    ext.paramA = ""
+}
+if (!project.hasProperty("paramB")) {
+    ext.paramB = ""
+}
 if (!project.hasProperty("maps")) {
     ext.maps = "shrine"
 }
@@ -173,6 +179,8 @@ task fastrun(type: JavaExec) {
             '-Dbc.game.maps='+project.property('maps'),
             '-Dbc.testing.team-a-seed='+project.property('seedA'),
             '-Dbc.testing.team-b-seed='+project.property('seedB'),
+            '-Dbc.testing.team-a-param='+project.property('paramA'),
+            '-Dbc.testing.team-b-param='+project.property('paramB'),
             '-Dbc.server.save-file=' + 'matches/' + project.property('teamA') + '-vs-' + project.property('teamB') + '-on-' + project.property('maps') + '.bc17'
     ]
 }

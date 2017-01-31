@@ -5,33 +5,94 @@ import subprocess
 
 import numpy as np
 
-package_to_test = 'turtlebot'
+package_to_test = 'combinedstrategies'
 params_to_test = ['']
 
 src_dir = './src/'
 # benchmarks, in the format (package name, commit hash, debug params)
 # (use a singleton list if no params to try)
 benchmarks = [
-    ('helloworld', 'e7f2931e5463977f9cde05e7f8893fe1a696d12e', ['']),
-    ('player3_halloworld', 'e7f2931e5463977f9cde05e7f8893fe1a696d12e', ['']),
-    ('turtlebot', 'e7f2931e5463977f9cde05e7f8893fe1a696d12e', ['']),
-    ('noop', '9f7e20825181e1d8fd0b3049414ffeae78a41993', [''])
+    ('combinedstrategies', '16a6621f6df0e2c25bfcb1c572d95efe15d40916', ['']),
+    ('turtlebot', '16a6621f6df0e2c25bfcb1c572d95efe15d40916', ['']),
+    ('noop', '16a6621f6df0e2c25bfcb1c572d95efe15d40916', [''])
 ]
 
 maps = [
+    '1337Tree',
+    'Aligned',
+    'Alone',
+    'Arena',
+    'Barbell',
     'Barrier',
+    'Blitzkrieg',
+    'Boxed',
+    'BugTrap',
+    'Bullseye',
+    'Captive',
+    'Caterpillar',
+    'Chess',
+    'Chevron',
+    'Clusters',
+    'Conga',
+    'Cramped',
+    'CropCircles',
+    'Croquembouche',
+    'CrossFire',
+    'DarkSide',
+    'DeathStar',
+    'Defenseless',
     'DenseForest',
+    'DigMeOut',
     'Enclosure',
+    'Fancy',
+    'FlappyTree',
+    'GiantForest',
+    'Grass',
+    'GreatDekuTree',
+    'GreenHouse',
+    'HedgeMaze',
+    'HiddenTunnel',
+    'HouseDivided',
     'Hurdle',
-    'SparseForest',
-    'shrine',
-    'MagicWood',
+    'Interference',
+    'Lanes',
+    'Levels',
+    'LilForts',
+    'LilMaze',
     'LineOfFire',
+    'MagicWood',
+    'Maniple',
+    'Misaligned',
+    'ModernArt',
+    'MyFirstMap',
+    'OMGTree',
+    'Ocean',
+    'Oxygen',
+    'PacMan',
+    'PasscalsTriangles',
+    'PeacefulEncounter',
+    'Planets',
+    'Present',
+    'PureImagination',
+    'Shortcut',
+    'Shrubbery',
+    'Slant',
+    'Snowflake',
+    'SparseForest',
+    'Sprinkles',
+    'Standoff',
+    'TheOtherSide',
+    'TicTacToe',
+    'TreeFarm',
+    'Turtle',
+    'Waves',
+    'Whirligig',
+    'shrine',
 ]
 
 benchmark_prefix = 'benchmark'
 
-runs_per_matchup = 100 # 100 or so would be better
+runs_per_matchup = 10 # 100 or so would be better
 
 ###########################################
 print('performing benchmarks for package \'{}\'...'.format(package_to_test))
