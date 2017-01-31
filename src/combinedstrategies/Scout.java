@@ -40,25 +40,44 @@ public class Scout extends RobotPlayer implements RobotHandler {
 			tryHarassGardener(); // Move and attack command
 			// System.out.println("I harass worker!");
 
-			// rc.setIndicatorDot(my_loc, 255, 0, 0); // debug
+//			 rc.setIndicatorDot(my_loc, 255, 0, 0); // debug
 
 		} else if (strategy == 1) {
 			// System.out.println("I explore the map!");
 
 			exploreMap(); // Explores around the map and pick up bullets from
 							// trees
-			// rc.setIndicatorDot(my_loc, 0, 255, 0); // debug
+//			 rc.setIndicatorDot(my_loc, 0, 255, 0); // debug
 		} else {
 			// System.out.println("I observe opponent!");
-			varifyEnemyLocation();
+//			varifyEnemyLocation();
 			// This strategy of the scout tries to figure out whether the
 			// broadcasted
 			// location is actually worth attacking
 
 			// rc.setIndicatorDot(my_loc, 0, 0, 255); // debug
+
+			tryCollectBullets();
 		}
 		checkIdle();
 
+	}
+
+	private void tryCollectBullets() throws GameActionException {
+
+		TreeInfo[] nearbyTrees = rc.senseNearbyTrees(type.sensorRadius, Team.NEUTRAL);
+		float shortestDist = Float.POSITIVE_INFINITY;
+		TreeInfo bestTree = null;
+		for (TreeInfo tree : nearbyTrees) {
+			float dist = rc.getLocation().distanceTo(tree.location);
+			if(dist < shortestDist){
+				shortestDist = dist;
+				bestTree = tree;
+			}
+		}
+		if (bestTree != null) {
+			tryMove(rc.getLocation().directionTo(bestTree.location), 10, 5);
+		}
 	}
 
 	static void varifyEnemyLocation() {
@@ -78,10 +97,11 @@ public class Scout extends RobotPlayer implements RobotHandler {
 		}
 	}
 
-	static int IDLETOOLONG = 300;
+	static int IDLETOOLONG = 100;
+	static MapLocation prevPosition = null;
 
 	static void checkIdle() {
-		if (enemiesInSight.length == 0 && !rc.hasAttacked()) {
+		if ((enemiesInSight.length == 0 || prevPosition.distanceTo(rc.getLocation()) < 0.1f) && !rc.hasAttacked()) {
 			// no enemy found and no shots fired
 			idle++;
 		} else {
@@ -91,6 +111,8 @@ public class Scout extends RobotPlayer implements RobotHandler {
 		if (idle > IDLETOOLONG && strategy == 0) {
 			strategy++;
 		}
+
+		prevPosition = rc.getLocation();
 
 	}
 
