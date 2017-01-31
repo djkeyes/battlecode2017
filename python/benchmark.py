@@ -6,13 +6,13 @@ import subprocess
 import numpy as np
 
 package_to_test = 'combinedstrategies'
-params_to_test = ['']
+params_to_test = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 
 src_dir = './src/'
 # benchmarks, in the format (package name, commit hash, debug params)
 # (use a singleton list if no params to try)
 benchmarks = [
-    ('combinedstrategies', '16a6621f6df0e2c25bfcb1c572d95efe15d40916', ['']),
+    ('combinedstrategies', '16a6621f6df0e2c25bfcb1c572d95efe15d40916', ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']),
     ('turtlebot', '16a6621f6df0e2c25bfcb1c572d95efe15d40916', ['']),
     ('noop', '16a6621f6df0e2c25bfcb1c572d95efe15d40916', [''])
 ]
@@ -147,47 +147,52 @@ command = [gradle_command, 'build']
 subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 # TODO: use params
-num_wins = np.zeros([len(flattened_benchmarks), len(maps)])
-for i, (generated_package, param) in enumerate(flattened_benchmarks):
+num_wins = np.zeros([len(flattened_benchmarks), len(maps), len(params_to_test)])
+for i, (generated_package, generated_param) in enumerate(flattened_benchmarks):
     # run the match!
     for j, map_name in enumerate(maps):
         for k in range(runs_per_matchup):
-            # swap teams, to avoid some kind of weird directional bias
-            if k % 2 == 0:
-                teamA = package_to_test
-                teamB = generated_package
-            else:
-                teamA = generated_package
-                teamB = package_to_test
-            maxInt = (2**31)-1
-            seedA = np.random.randint(maxInt)
-            seedB = np.random.randint(maxInt)
-            command = [gradle_command, 'fastrun', '-PteamA=' + teamA, '-PteamB=' + teamB, '-Pmaps=' + map_name,
-                '-PseedA='+str(seedA), '-PseedB='+str(seedB)]
-            result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            
-            # daniel: normally I get some warnings about L4J logger problems. If there's more errors than that, there might be a problem
-            if len(result.stderr) > 213:
-                print('\nEncountered a long error message. is the process running correctly? to reproduce, run:')
-                print(" ".join(command))
-             
-            out = result.stdout
-            
-            matchStartIdx = out.find(b'Match Starting')
-            matchEndIdx = out.find(b'Match Finished')
-            if out[matchStartIdx:matchEndIdx].count(b'\n') > 4:
-                print('\nEncountered a long stdout. Is a robot printing messages to stdout? to reproduce, run:')
-                print(" ".join(command))            
-            
-            winsIdx = out.find(b'wins')
-            prevNewlineIdx = out.rfind(b'\n', 0, winsIdx)
-            nextNewlineIdx = out.find(b'\n', winsIdx)
-            winString = out[prevNewlineIdx:nextNewlineIdx].decode('utf-8')
-            tokens = winString.split()
-            winner = tokens[1]
-            if winner == package_to_test:
-                num_wins[i, j] += 1.0
-            print('.', end='', flush=True)
+            for m, test_param in enumerate(params_to_test):
+                # swap teams, to avoid some kind of weird directional bias
+                if k % 2 == 0:
+                    teamA = package_to_test
+                    paramA = test_param
+                    teamB = generated_package
+                    paramB = generated_param
+                else:
+                    teamA = generated_package
+                    paramA = generated_param
+                    teamB = package_to_test
+                    paramB = test_param
+                maxInt = (2**31)-1
+                seedA = np.random.randint(maxInt)
+                seedB = np.random.randint(maxInt)
+                command = [gradle_command, 'fastrun', '-PteamA=' + teamA, '-PteamB=' + teamB, '-PparamA=' + paramA, '-PparamB=' + paramB, '-Pmaps=' + map_name,
+                    '-PseedA='+str(seedA), '-PseedB='+str(seedB)]
+                result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                
+                # daniel: normally I get some warnings about L4J logger problems. If there's more errors than that, there might be a problem
+                if len(result.stderr) > 213:
+                    print('\nEncountered a long error message. is the process running correctly? to reproduce, run:')
+                    print(" ".join(command))
+                 
+                out = result.stdout
+                
+                matchStartIdx = out.find(b'Match Starting')
+                matchEndIdx = out.find(b'Match Finished')
+                if out[matchStartIdx:matchEndIdx].count(b'\n') > 4:
+                    print('\nEncountered a long stdout. Is a robot printing messages to stdout? to reproduce, run:')
+                    print(" ".join(command))            
+                
+                winsIdx = out.find(b'wins')
+                prevNewlineIdx = out.rfind(b'\n', 0, winsIdx)
+                nextNewlineIdx = out.find(b'\n', winsIdx)
+                winString = out[prevNewlineIdx:nextNewlineIdx].decode('utf-8')
+                tokens = winString.split()
+                winner = tokens[1]
+                if winner == package_to_test:
+                    num_wins[i, j, m] += 1.0
+                print('.', end='', flush=True)
 
 print()
 win_rate = num_wins / runs_per_matchup
@@ -199,45 +204,50 @@ print('Id\tbenchmark param tuple'.format(i, benchmark))
 for i, benchmark in enumerate(flattened_benchmarks):
     print('{}\t{}'.format(i, benchmark))
 
-print()
-print('-------------------------------------------------------------------------------------')
-print()
 
-print('\tWIN RATES PER BENCHMARK PER MAP')
-print('\t\t\tbenchmark Id')
-print('\t\t', end='')
-for i in range(len(flattened_benchmarks)):
-    print('\t  {}'.format(i), end='')
-print('\toverall')
+for m, test_param in enumerate(params_to_test):
 
-for j in range(len(maps)):
-    if j == 0:
-        print('map', end='')
-    
-    short_map_name = maps[j]
-    short_map_name = '{0: <15}'.format(short_map_name)
-    if len(short_map_name) > 15:
-        short_map_name = short_map_name[:15]
-    print('\t{}\t'.format(short_map_name), end='')
+    print()
+    print('-------------------------------------------------------------------------------------')
+    print('-------------------------------------------------------------------------------------')
+    print()
+    print('\tWIN RATES PER BENCHMARK PER MAP, param=' + test_param)
+    print('\t\t\tbenchmark Id')
+    print('\t\t', end='')
     for i in range(len(flattened_benchmarks)):
-        mean = win_rate[i, j]
-        print('{:.4f}\t'.format(mean), end='')
-    map_mean = np.mean(win_rate[:,j])
-    print('{:.4f}'.format(map_mean))
+        print('\t  {}'.format(i), end='')
+    print('\toverall')
 
-print()
-print('-------------------------------------------------------------------------------------')
-print()
+    for j in range(len(maps)):
+        if j == 0:
+            print('map', end='')
+        
+        short_map_name = maps[j]
+        short_map_name = '{0: <15}'.format(short_map_name)
+        if len(short_map_name) > 15:
+            short_map_name = short_map_name[:15]
+        print('\t{}\t'.format(short_map_name), end='')
+        for i in range(len(flattened_benchmarks)):
+            mean = win_rate[i, j, m]
+            print('{:.4f}\t'.format(mean), end='')
+        map_mean = np.mean(win_rate[:,j,m])
+        print('{:.4f}'.format(map_mean))
 
-print('\tOVERALL WIN RATES PER BENCHMARKS')
 
-print('Id\twinrate')
-for i in range(len(flattened_benchmarks)):
-    print('{}\t{:.4f}'.format(i, np.mean(win_rate[i,:])))
+    print()
+    print('-------------------------------------------------------------------------------------')
+    print()
 
-print()
-print('-------------------------------------------------------------------------------------')
-print()
+    print('\tOVERALL WIN RATES PER BENCHMARKS')
 
-print('OVERALL MEAN WIN RATES: {}'.format(np.mean(win_rate)))
+    print('Id\twinrate')
+    for i in range(len(flattened_benchmarks)):
+        print('{}\t{:.4f}'.format(i, np.mean(win_rate[i,:])))
+
+    print()
+    print('-------------------------------------------------------------------------------------')
+    print()
+
+    print('OVERALL MEAN WIN RATES: {}'.format(np.mean(win_rate)))
+
 

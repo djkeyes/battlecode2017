@@ -1,6 +1,7 @@
 package combinedstrategies;
 
 import battlecode.common.RobotType;
+import battlecode.common.Team;
 
 public class BuildOrder extends RobotPlayer{
 
@@ -9,20 +10,43 @@ public class BuildOrder extends RobotPlayer{
      * of building adaptively.
      * @return true if nextToBuild() to be called
      */
-	static RobotType[] AGGRESIVE_INITIAL_BUILD_ORDER = {
+	static RobotType[] ScScSoTL_BUILD_ORDER = {
 			RobotType.GARDENER,RobotType.SCOUT,RobotType.SCOUT,RobotType.SOLDIER,null,RobotType.LUMBERJACK
 	};
 
-	static RobotType[] SOLDIER_FIRST_INITIAL_BUILD_ORDER = {
+	static RobotType[] SoTScTL_BUILD_ORDER = {
 			RobotType.GARDENER,RobotType.SOLDIER,null,RobotType.SCOUT, null, RobotType.LUMBERJACK
 	};
 
-	static RobotType[] LUMBERJACK_FIRST_INITIAL_BUILD_ORDER = {
+	static RobotType[] SoTSoTL_BUILD_ORDER = {
+			RobotType.GARDENER,null,RobotType.SOLDIER,RobotType.SOLDIER, null, RobotType.LUMBERJACK
+	};
+
+	static RobotType[] SoTTSoL_BUILD_ORDER = {
+			RobotType.GARDENER,null,null,RobotType.SOLDIER,RobotType.SOLDIER, RobotType.LUMBERJACK
+	};
+
+	static RobotType[] SoSoTTL_BUILD_ORDER = {
+			RobotType.GARDENER,RobotType.SOLDIER,RobotType.SOLDIER, null, null, RobotType.LUMBERJACK
+	};
+	static RobotType[] SoSoSoTTL_BUILD_ORDER = {
+			RobotType.GARDENER,RobotType.SOLDIER,RobotType.SOLDIER,RobotType.SOLDIER, null, null, RobotType.LUMBERJACK
+	};
+
+	static RobotType[] LTSoTSc_BUILD_ORDER = {
 			RobotType.GARDENER,RobotType.LUMBERJACK,null,RobotType.SOLDIER, null, RobotType.SCOUT
 	};
 
-	static RobotType[] ECONOMIC_INITIAL_BUILD_ORDER = {
+	static RobotType[] LSoTTSc_BUILD_ORDER = {
+			RobotType.GARDENER,RobotType.LUMBERJACK,RobotType.SOLDIER, null, null, RobotType.SCOUT
+	};
+
+	static RobotType[] TTSoTScTL_BUILD_ORDER = {
 			RobotType.GARDENER,null,null,RobotType.SOLDIER,null,RobotType.SCOUT, null, RobotType.LUMBERJACK
+	};
+
+	static RobotType[] TTTSoTScTL_BUILD_ORDER = {
+			RobotType.GARDENER,null,null,null,RobotType.SOLDIER,null,RobotType.SCOUT, null, RobotType.LUMBERJACK
 	};
 	
 	static RobotType[] initialBuildOrder = null;
@@ -36,16 +60,57 @@ public class BuildOrder extends RobotPlayer{
     static void setInitialBuildOrder(int orderName){
     	switch(orderName){
 			case SOLDIER_FIRST:
-				initialBuildOrder = SOLDIER_FIRST_INITIAL_BUILD_ORDER;
+				initialBuildOrder = SoTScTL_BUILD_ORDER;
 				break;
 			case LUMBERJACK_FIRST:
-				initialBuildOrder = LUMBERJACK_FIRST_INITIAL_BUILD_ORDER;
+				initialBuildOrder = LTSoTSc_BUILD_ORDER;
 				break;
 			case ECONOMIC:
-				initialBuildOrder = ECONOMIC_INITIAL_BUILD_ORDER;
+				initialBuildOrder = TTSoTScTL_BUILD_ORDER;
 				break;
 		}
 
+
+		String param;
+		if (us == Team.A) {
+			param = System.getProperty("bc.testing.team-a-param");
+		} else {
+			param = System.getProperty("bc.testing.team-b-param");
+		}
+		if (param != null) {
+			switch(param){
+				case "0":
+					initialBuildOrder = ScScSoTL_BUILD_ORDER;
+					break;
+				case "1":
+					initialBuildOrder = SoTScTL_BUILD_ORDER;
+					break;
+				case "2":
+					initialBuildOrder = SoTSoTL_BUILD_ORDER;
+					break;
+				case "3":
+					initialBuildOrder = SoTTSoL_BUILD_ORDER;
+					break;
+				case "4":
+					initialBuildOrder = SoSoTTL_BUILD_ORDER;
+					break;
+				case "5":
+					initialBuildOrder = SoSoSoTTL_BUILD_ORDER;
+					break;
+				case "6":
+					initialBuildOrder = LTSoTSc_BUILD_ORDER;
+					break;
+				case "7":
+					initialBuildOrder = LSoTTSc_BUILD_ORDER;
+					break;
+				case "8":
+					initialBuildOrder = TTSoTScTL_BUILD_ORDER;
+					break;
+				case "9":
+					initialBuildOrder = TTTSoTScTL_BUILD_ORDER;
+					break;
+			}
+		}
 	}
 
     /**
