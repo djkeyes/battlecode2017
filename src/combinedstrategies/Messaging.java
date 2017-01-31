@@ -252,20 +252,28 @@ public strictfp class Messaging extends RobotPlayer {
     }
 
     static void reportMapLowerX(int lowerx) throws GameActionException {
-        lowerLimitX = lowerx;
-        rc.broadcast(MAP_X_LOWERLIMIT_CHANNEL, lowerx);
+        if(lowerx != lowerLimitX) {
+            lowerLimitX = lowerx;
+            rc.broadcast(MAP_X_LOWERLIMIT_CHANNEL, lowerx);
+        }
     }
     static void reportMapLowerY(int lowery) throws GameActionException {
-        lowerLimitY = lowery;
-        rc.broadcast(MAP_Y_LOWERLIMIT_CHANNEL, lowery);
+        if(lowery != lowerLimitY) {
+            lowerLimitY = lowery;
+            rc.broadcast(MAP_Y_LOWERLIMIT_CHANNEL, lowery);
+        }
     }
     static void reportMapUpperX(int upperx) throws GameActionException {
-        upperLimitX = upperx;
-        rc.broadcast(MAP_X_UPPERLIMIT_CHANNEL, upperx);
+        if(upperx != upperLimitX) {
+            upperLimitX = upperx;
+            rc.broadcast(MAP_X_UPPERLIMIT_CHANNEL, upperx);
+        }
     }
     static void reportMapUpperY(int uppery) throws GameActionException {
-        upperLimitY = uppery;
-        rc.broadcast(MAP_Y_UPPERLIMIT_CHANNEL, uppery);
+        if(uppery != upperLimitY) {
+            upperLimitY = uppery;
+            rc.broadcast(MAP_Y_UPPERLIMIT_CHANNEL, uppery);
+        }
     }
     static void readMapLowerX() throws GameActionException {
         lowerLimitX = rc.readBroadcast(MAP_X_LOWERLIMIT_CHANNEL);
