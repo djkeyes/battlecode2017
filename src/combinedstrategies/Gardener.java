@@ -214,16 +214,48 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
 
         centerPosition = rc.getLocation();
 
-        // create a set of tree positions
-        // dist to center of tree
-        float d = computeTreePlantingDist(NUM_TREES_PER_GARDENER);
-        // due to finite precision of floating point numbers, we offset the tree by a small epsilon
-        float plantingDist = d - GameConstants.BULLET_TREE_RADIUS
-                - GameConstants.GENERAL_SPAWN_OFFSET - type.bodyRadius;
-        float centerRad = (float) (gen.nextDouble() * 2.0 * StrictMath.PI);
+        Direction[] bestPlantingDirs = null;
+        MapLocation[] bestPlantingPoss = null;
+        int mostSlotsAvailable = -1;
+        int numRetries = 10;
+        for (int attempt = 0; attempt < numRetries; attempt++) {
+            Direction[] curPlantingDirs = new Direction[NUM_TREES_PER_GARDENER];
+            MapLocation[] curPlantingPoss = new MapLocation[NUM_TREES_PER_GARDENER];
+            int slotsAvailable = 0;
+            // create a set of tree positions
+            // dist to center of tree
+            float d = computeTreePlantingDist(NUM_TREES_PER_GARDENER);
+            // due to finite precision of floating point numbers, we offset the tree by a small epsilon
+            float plantingDist = d - GameConstants.BULLET_TREE_RADIUS
+                    - GameConstants.GENERAL_SPAWN_OFFSET - type.bodyRadius;
+            float centerRad = (float) (gen.nextDouble() * 2.0 * StrictMath.PI);
+            for (int i = 0; i < NUM_TREES_PER_GARDENER; i++) {
+                curPlantingDirs[i] = new Direction((float) (centerRad + 2.0 * Math.PI * i / NUM_TREES_PER_GARDENER));
+                curPlantingPoss[i] = centerPosition.add(plantingDirs[i], plantingDist);
+
+
+                MapLocation treePosition = curPlantingPoss[i].add(curPlantingDirs[i], type.bodyRadius
+                        + GameConstants.GENERAL_SPAWN_OFFSET + GameConstants.BULLET_TREE_RADIUS);
+                if (rc.onTheMap(treePosition, GameConstants.BULLET_TREE_RADIUS)) {
+                    if (!rc.isCircleOccupied(treePosition, GameConstants.BULLET_TREE_RADIUS)) {
+                        slotsAvailable += 2;
+                    } else {
+                        // all obstacles except the map edge are transient
+                        slotsAvailable++;
+                    }
+                }
+            }
+
+            if (slotsAvailable > mostSlotsAvailable) {
+                mostSlotsAvailable = slotsAvailable;
+                bestPlantingDirs = curPlantingDirs;
+                bestPlantingPoss = curPlantingPoss;
+            }
+        }
+
+        plantingDirs = bestPlantingDirs;
+        plantingPositions = bestPlantingPoss;
         for (int i = 0; i < NUM_TREES_PER_GARDENER; i++) {
-            plantingDirs[i] = new Direction((float) (centerRad + 2.0 * Math.PI * i / NUM_TREES_PER_GARDENER));
-            plantingPositions[i] = centerPosition.add(plantingDirs[i], plantingDist);
             treeIds[i] = -1;
         }
     }
