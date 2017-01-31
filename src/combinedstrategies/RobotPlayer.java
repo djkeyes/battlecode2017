@@ -18,6 +18,10 @@ public strictfp class RobotPlayer {
     static RobotInfo[] enemiesInSight = null;
     static RobotInfo[] alliesInSignt = null;
 
+    static SingleArgBooleanMethod<Direction> canMoveDir = null;
+    static SingleArgBooleanMethod<MapLocation> canMoveLoc = null;
+    static TwoArgBooleanMethod<Direction, Float> canMoveDirDist = null;
+
     @SuppressWarnings("unused")
     public static void run(RobotController rc) {
         init(rc);
@@ -45,6 +49,20 @@ public strictfp class RobotPlayer {
 
         us = rc.getTeam();
         them = us.opponent();
+
+        if(type == RobotType.TANK){
+            canMoveDir = Tank::canMoveDir;
+            canMoveLoc = Tank::canMoveLoc;
+            canMoveDirDist = Tank::canMoveDirDist;
+        } else {
+            // it would be nice to reference canMove directly, but instead we have to incur the overhead of an extra
+            // method call:
+            // "Due to instrumentation limitations, you can't take a reference to battlecode.common.RobotController::canMove;
+            // use () -> battlecode.common.RobotController.canMove() instead."
+            canMoveDir = (Direction d) -> rc.canMove(d);
+            canMoveLoc = (MapLocation m) -> rc.canMove(m);
+            canMoveDirDist = (Direction d, Float f) -> rc.canMove(d, f);
+        }
 
         // right now, robot IDs are fixed for each map, because each map has a fixed random seed.
         // to circumvent this, we also take a seed as a command line param.
@@ -158,7 +176,7 @@ public strictfp class RobotPlayer {
     	// Move part, basicly same idea as in bullet dodge, sample and find best spot on the stride edges
         MapLocation bestLocation = rc.getLocation().
         			add(relevantLJs[0].getLocation().directionTo(rc.getLocation()),type.strideRadius);
-        if (!rc.canMove(bestLocation)){
+        if (!canMoveLoc.invoke(bestLocation)){
         	bestLocation = null;
         }
         // Opposite from the closest enemy always a good starting point
@@ -178,7 +196,7 @@ public strictfp class RobotPlayer {
 
             theta = thetaOffset + maxTheta * gen.nextDouble();
             MapLocation next = rc.getLocation().add((float) theta, type.strideRadius);
-            if (rc.canMove(next)) {
+            if (canMoveLoc.invoke(next)) {
                 float distance_from_safe = countDistanceFromLumberJacks(next, relevantLJs, relevant_LJ_counter);
                 if (distance_from_safe > maxSaftyDistance) {
                     maxSaftyDistance = distance_from_safe;
@@ -279,7 +297,7 @@ public strictfp class RobotPlayer {
             // or so iterations in.
             theta = thetaOffset + maxTheta * gen.nextDouble();
             MapLocation next = myLoc.add((float) theta, r);
-            if (rc.canMove(next)) {
+            if (canMoveLoc.invoke(next)) {
                 float damage = countDamageFromBullets(next, body, relevantBullets, numRelevantBullets);
                 if (damage < minDamage) {
                     minDamage = damage;
@@ -438,7 +456,7 @@ public strictfp class RobotPlayer {
         // first, try moving straight
         MapLocation start = rc.getLocation();
         Direction targetDir = start.directionTo(target);
-        if (rc.canMove(targetDir)) {
+        if (canMoveDir.invoke(targetDir)) {
             rc.move(start.directionTo(target));
             return true;
         }
@@ -470,7 +488,7 @@ public strictfp class RobotPlayer {
             MapLocation next = start.add((float) theta, (float) r * type.strideRadius);
             float dist = target.distanceTo(next);
             if (dist < minDist) {
-                if (rc.canMove(next)) {
+                if (canMoveLoc.invoke(next)) {
                     minDist = dist;
                     bestLocation = next;
 
@@ -489,7 +507,7 @@ public strictfp class RobotPlayer {
             for (int i = 0; i < 10; i++) {
                 Direction dir = randomDirection();
                 MapLocation next = start.add(dir);
-                if (rc.canMove(next)) {
+                if (canMoveLoc.invoke(next)) {
                     bestLocation = next;
                     break;
                 }
@@ -513,7 +531,7 @@ public strictfp class RobotPlayer {
         // If we can go straight, go straight, but not always. The problem occurs if we are moving
         // alongside an obstacle that makes us move away from the goal, so we try to look ahead
         // before moving forward (that is why these isCircleOccupied checks).
-        if (rc.canMove(dir)) {
+        if (canMoveDir.invoke(dir)) {
             if (rc.getType() == RobotType.SCOUT || previous_side == -2 ||
             (!rc.isCircleOccupiedExceptByThisRobot(rc.getLocation().add(dir,
             0.5f * type.bodyRadius), type.bodyRadius) && (
@@ -533,7 +551,7 @@ public strictfp class RobotPlayer {
         }
 
         // Try to move towards the obstacle first.
-        if (rc.canMove(previous_dir) &&
+        if (canMoveDir.invoke(previous_dir) &&
                 !rc.isCircleOccupiedExceptByThisRobot(rc.getLocation().add(
                             previous_dir, type.strideRadius), type.bodyRadius)) {
             int currentCheck = 1;
@@ -545,7 +563,7 @@ public strictfp class RobotPlayer {
                     new_dir = previous_dir.rotateLeftDegrees(degreeOffset);
                 else
                     break;
-                if (!rc.canMove(new_dir)) {
+                if (!canMoveDir.invoke(new_dir)) {
                     rc.move(previous_dir);
                     return true;
                 }
@@ -562,7 +580,7 @@ public strictfp class RobotPlayer {
                     new_dir = previous_dir.rotateRightDegrees(degreeOffset);
                 else
                     break;
-                if (rc.canMove(new_dir)) {
+                if (canMoveDir.invoke(new_dir)) {
                     rc.move(new_dir);
                     previous_dir = new_dir;
                     return true;
@@ -573,7 +591,7 @@ public strictfp class RobotPlayer {
 
         // If everything else fails try a random direction.
         Direction random_dir = randomDirection();
-        if (rc.canMove(random_dir)) {
+        if (canMoveDir.invoke(random_dir)) {
             rc.move(random_dir);
         }
         previous_dir = dir;
@@ -587,7 +605,7 @@ public strictfp class RobotPlayer {
         // daniel: wow, this sucks. rewrite it.
 
         // First, try intended direction
-        if (rc.canMove(dir, dist)) {
+        if (canMoveDirDist.invoke(dir, dist)) {
             rc.move(dir, dist);
             return true;
         }
@@ -598,12 +616,12 @@ public strictfp class RobotPlayer {
 
         while (currentCheck <= checksPerSide) {
             // Try the offset of the left side
-            if (rc.canMove(dir.rotateLeftDegrees(degreeOffset * currentCheck), dist)) {
+            if (canMoveDirDist.invoke(dir.rotateLeftDegrees(degreeOffset * currentCheck), dist)) {
                 rc.move(dir.rotateLeftDegrees(degreeOffset * currentCheck), dist);
                 return true;
             }
             // Try the offset on the right side
-            if (rc.canMove(dir.rotateRightDegrees(degreeOffset * currentCheck), dist)) {
+            if (canMoveDirDist.invoke(dir.rotateRightDegrees(degreeOffset * currentCheck), dist)) {
                 rc.move(dir.rotateRightDegrees(degreeOffset * currentCheck), dist);
                 return true;
             }
@@ -911,22 +929,45 @@ public strictfp class RobotPlayer {
         }
 
         if (bestTarget != null) {
-            Direction dir = rc.getLocation().directionTo(bestTarget.location);
-            double dist = rc.getLocation().distanceTo(bestTarget.location);
-            // determine best kind of shot to fire
-            if (enemiesInSight.length > 3 * alliesInSignt.length && rc.canFirePentadShot()) {
-                rc.firePentadShot(dir);
-            } else {
-                double projectedAngle = StrictMath.asin(bestTarget.type.bodyRadius / dist);
-                projectedAngle = StrictMath.toDegrees(projectedAngle);
-                if (projectedAngle >= GameConstants.PENTAD_SPREAD_DEGREES * 2
-                        && rc.canFirePentadShot()) {
+            if(type == RobotType.SOLDIER) {
+                Direction dir = rc.getLocation().directionTo(bestTarget.location);
+                double dist = rc.getLocation().distanceTo(bestTarget.location);
+                // determine best kind of shot to fire
+                if (enemiesInSight.length > 3 * alliesInSignt.length && rc.canFirePentadShot()) {
                     rc.firePentadShot(dir);
-                } else if (projectedAngle >= GameConstants.TRIAD_SPREAD_DEGREES
-                        && rc.canFireTriadShot()) {
-                    rc.fireTriadShot(dir);
                 } else {
-                    rc.fireSingleShot(dir);
+                    double projectedAngle = StrictMath.asin(bestTarget.type.bodyRadius / dist);
+                    projectedAngle = StrictMath.toDegrees(projectedAngle);
+                    if (projectedAngle >= GameConstants.PENTAD_SPREAD_DEGREES * 2
+                            && rc.canFirePentadShot()) {
+                        rc.firePentadShot(dir);
+                    } else if (projectedAngle >= GameConstants.TRIAD_SPREAD_DEGREES
+                            && rc.canFireTriadShot()) {
+                        rc.fireTriadShot(dir);
+                    } else {
+                        rc.fireSingleShot(dir);
+                    }
+                }
+            } else {
+                // tank
+                Direction dir = rc.getLocation().directionTo(bestTarget.location);
+                double dist = rc.getLocation().distanceTo(bestTarget.location);
+                double effectiveDist = dist - type.bodyRadius;
+                // determine best kind of shot to fire
+                if (enemiesInSight.length > 3 * alliesInSignt.length && rc.canFirePentadShot()) {
+                    rc.firePentadShot(dir);
+                } else {
+                    // do we care about friendly fire? I GUESS NOT
+                    if(effectiveDist > 5f && rc.canFireTriadShot()){
+                        // tri, unlikely to hit
+                        rc.fireTriadShot(dir);
+                    } else if(rc.canFirePentadShot()){
+                        // penta
+                        rc.firePentadShot(dir);
+                    } else if(rc.canFireSingleShot()){
+                        // out of money? not sure
+                        rc.fireSingleShot(dir);
+                    }
                 }
             }
             return true;
