@@ -29,11 +29,7 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
      * gardeners don't forget about far-away trees. Compared to clustering strategies, this might be slightly less
      * space efficient, but it's more defendable against scout rushes.
      */
-//    private final int BROADCASTED_CLUSTER_STRATEGY = 0;
-//    private final int CLUSTER_ON_GRID_STRATEGY = 1;
-//    private final int GRID_ALIGNED_CLUSTER_STRATEGY = 2;
-//    // TODO: read this as a parameter, and test which one works best
-//    private int PLANTING_STRATEGY = BROADCASTED_CLUSTER_STRATEGY;
+    private VoidMethod constructionMethod;
 
     // unfortunately with the latest patch, n>7 trees is too far to water without moving
     // TODO: make gardeners move more freely within their cluster
@@ -65,13 +61,18 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
 
     private int isMaxed = 0;
     private float adjacentTreeIncome = 0f;
-    private int adjacentTreeNum = 0;
     private int numUnitsBuilt = 0;
 
     @Override
     public void init() throws GameActionException {
         earliestRushTurn = computeEarliestRush();
         turnsAlive = 0;
+
+        if (true) {
+            constructionMethod = this::buildNaiveClusters;
+        } else {
+            constructionMethod = this::buildTreeGrid;
+        }
 
         BuildOrder.setInitialBuildOrder(Messaging.readInitialBuildOrder());
     }
@@ -80,32 +81,8 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
     public void onLoop() throws GameActionException {
         builtUnit = false;
 
-        // TODO: unless we're the very first gardener, maybe we should move away from nearby units first.
-        // or at least from nearby gardeners
-        // or maybe we should have a messaging flag. if the map is very small/crowded, don't bother spreading.
-        if (!isStationary && turnsAlive <= 200 && rc.getRoundNum() > 5 && needToMoveAwayFromPack()) {
-            moveAwayFromPack();
-        } else {
-            if (!isStationary) {
-                isStationary = true;
-                initializeTreePattern();
-            }
-            // attempt to build a tree or unit
-            if (rc.getBuildCooldownTurns() == 0) {
-                determineWhatToBuild();
-                if (shouldBuildTree) {
-                    buildTree();
-                } else if (typeToBuild != null) {
-                    builtUnit = tryBuildRobot();
-                }
-            } else {
-                tryReturnToCenter();
-            }
-        }
-
+        constructionMethod.invoke();
         // maybe if we haven't built any trees at all, we should dodge bullets?
-
-        tryWateringNearby();
 
         turnsAlive++;
     }
@@ -117,7 +94,11 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
             examineAdjacentTrees();
             Messaging.sendHeartbeatSignal(0, 1, inConstruction.numLumberjacks,
                     inConstruction.numScouts, inConstruction.numSoldiers, inConstruction.numTanks, isMaxed,
-                    adjacentTreeIncome,adjacentTreeNum);
+                    adjacentTreeIncome);
+
+            if (isStationary) {
+                Messaging.setStationaryGardeneryPosition(rc.getLocation());
+            }
         } else if (builtUnit) {
             switch (typeToBuild) {
                 case SCOUT:
@@ -134,7 +115,43 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
                     break;
             }
         }
+    }
 
+    private void buildNaiveClusters() throws GameActionException {
+        // check what to build
+        if (rc.getBuildCooldownTurns() == 0) {
+            determineWhatToBuild();
+        } else {
+            shouldBuildTree = false;
+            typeToBuild = null;
+        }
+
+        if (!isStationary && turnsAlive <= 200 && rc.getRoundNum() > 5 && needToMoveAwayFromPack()) {
+            moveAwayFromPack();
+
+            // even if we're not stationary, we can still build robots
+            if (typeToBuild != null) {
+                builtUnit = tryBuildRobot(13000);
+            }
+        } else {
+            if (!isStationary) {
+                isStationary = true;
+                initializeTreePattern();
+                if(!Messaging.shouldSendHeartbeat()) {
+                    Messaging.setStationaryGardeneryPosition(rc.getLocation());
+                }
+            }
+
+            if (shouldBuildTree) {
+                buildTree();
+            } else if (typeToBuild != null) {
+                builtUnit = tryBuildRobot(13000);
+            } else {
+                tryReturnToCenter();
+            }
+        }
+
+        tryWateringNearby();
     }
 
     private MapLocation computeTreePosition(int treeIdx) {
@@ -242,7 +259,6 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
 
         }
         adjacentTreeIncome = GameConstants.BULLET_TREE_BULLET_PRODUCTION_RATE * totalTreeHealth;
-        adjacentTreeNum = numTrees;
         // 2-tree leeway
         if (numTrees >= numTreesPossible - 2) {
             isMaxed = 1;
@@ -257,7 +273,7 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
         }
     }
 
-    private boolean tryBuildRobot() throws GameActionException {
+    private boolean tryBuildRobot(int maxBytecodes) throws GameActionException {
         // TODO check locations in a more structured way
         // for example, check nearby units and detect free space. alternatively, since trees are in a pattern, try
         // building in holes in the pattern.
@@ -267,22 +283,23 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
         }
 
         // first check planting locations
-        for (int i = 0; i < NUM_TREES_PER_GARDENER; i++) {
-            MapLocation buildLoc = computeTreePosition(i);
-            if (rc.canMove(plantingPositions[i])
-                    && rc.onTheMap(buildLoc, typeToBuild.bodyRadius)
-                    && !rc.isCircleOccupied(buildLoc, typeToBuild.bodyRadius)) {
-                rc.move(plantingPositions[i]);
-                rc.buildRobot(typeToBuild, plantingDirs[i]);
-                inConstruction.enqueue(typeToBuild, rc.getRoundNum() + 20);
-                numUnitsBuilt++;
-                return true;
+        if(plantingPositions[0] != null) {
+            for (int i = 0; i < NUM_TREES_PER_GARDENER; i++) {
+                MapLocation buildLoc = computeTreePosition(i);
+                if (rc.canMove(plantingPositions[i])
+                        && rc.onTheMap(buildLoc, typeToBuild.bodyRadius)
+                        && !rc.isCircleOccupied(buildLoc, typeToBuild.bodyRadius)) {
+                    rc.move(plantingPositions[i]);
+                    rc.buildRobot(typeToBuild, plantingDirs[i]);
+                    inConstruction.enqueue(typeToBuild, rc.getRoundNum() + 20);
+                    numUnitsBuilt++;
+                    return true;
+                }
             }
         }
 
         // then just try adjacent positions. maybe someone else is in the way.
-        int numRetries = 20;
-        for (int i = 0; i < numRetries; i++) {
+        while (Clock.getBytecodeNum() < maxBytecodes) {
             Direction dir = randomDirection();
             if (rc.canBuildRobot(typeToBuild, dir)) {
                 rc.buildRobot(typeToBuild, dir);
@@ -292,6 +309,10 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
             }
         }
         return false;
+    }
+
+    private void buildTreeGrid() throws GameActionException {
+        // TODO
     }
 
     private void determineWhatToBuild() throws GameActionException {

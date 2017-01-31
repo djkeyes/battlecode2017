@@ -1,6 +1,7 @@
 package combinedstrategies;
 
 import battlecode.common.GameActionException;
+import battlecode.common.MapLocation;
 
 public strictfp class Messaging extends RobotPlayer {
 
@@ -13,7 +14,6 @@ public strictfp class Messaging extends RobotPlayer {
     static final int SCOUT_COUNT_CHANNEL = 4;
     static final int SOLDIER_COUNT_CHANNEL = 5;
     static final int TANK_COUNT_CHANNEL = 6;
-    static final int TREE_COUNT_CHANNEL = 7;
 
     // useful variables to track when creating rooted gardeners
     static final int MAXED_GARDENER_COUNT_CHANNEL = 10;
@@ -32,6 +32,9 @@ public strictfp class Messaging extends RobotPlayer {
     static final int MAP_Y_UPPERLIMIT_CHANNEL = 21;
     static final int MAP_X_LOWERLIMIT_CHANNEL = 22;
     static final int MAP_X_UPPERLIMIT_CHANNEL = 23;
+
+    static final int GARDENER_POSITIONS_SIZE_CHANNEL = 100;
+    static final int GARDENER_POSITIONS_STACK_START_CHANNEL = 101;
 
 
     // Enemy positions. For now we will reserve 200 channels for this, which is 100 positions (x, y).
@@ -61,7 +64,6 @@ public strictfp class Messaging extends RobotPlayer {
     static int tankCount = 0;
     static int maxedGardenerCount = 0;
     static float totalTreeIncome = 0;
-    static int treeCount = 0;
     static int itemBuiltCount = 0; // Including units built and tree planted
 
     static int lowerLimitX = 0;
@@ -75,6 +77,8 @@ public strictfp class Messaging extends RobotPlayer {
     static final int RUSH_STRATEGY = 2;
     static int currentStrategy;
 
+    static final int MAX_GARDENER_POSITIONS_TO_COUNT = 50;
+    static float gardenerDistX, gardenerDistY;
 
     static void tryGetUnitCounts() throws GameActionException {
         // Periodically, all counts are reset to track robot deaths.
@@ -108,11 +112,8 @@ public strictfp class Messaging extends RobotPlayer {
         soldierCount = rc.readBroadcast(SOLDIER_COUNT_CHANNEL);
         tankCount = rc.readBroadcast(TANK_COUNT_CHANNEL);
         maxedGardenerCount = rc.readBroadcast(MAXED_GARDENER_COUNT_CHANNEL);
-        int encodedTreeIncome = rc.readBroadcast(TOTAL_TREE_INCOME_CHANNEL);
-        treeCount = rc.readBroadcast(TREE_COUNT_CHANNEL);
-        totalTreeIncome = Float.intBitsToFloat(encodedTreeIncome);
-        itemBuiltCount = gardenerCount + lumberjackCount + scoutCount + soldierCount + tankCount +
-                         treeCount;
+        totalTreeIncome = rc.readBroadcastFloat(TOTAL_TREE_INCOME_CHANNEL);
+        itemBuiltCount = gardenerCount + lumberjackCount + scoutCount + soldierCount + tankCount + rc.getTreeCount();
 //        System.out.printf("[A: %d, G: %d, L: %d, Sct: %d, Sdr: %d, T: %d, MaxedG: %d, Inc: %.4f, Tr: %d]\n",
 //                archonCount, gardenerCount, lumberjackCount, scoutCount, soldierCount, tankCount, maxedGardenerCount,
 //                totalTreeIncome,treeCount);
@@ -124,8 +125,7 @@ public strictfp class Messaging extends RobotPlayer {
     }
 
     static void sendHeartbeatSignal(int numArchons, int numGardeners, int numLumberjacks, int numScouts,
-                                    int numSoldiers, int numTanks, int numMaxedGardeners, float treeIncome,
-                                    int numTrees) throws GameActionException {
+                                    int numSoldiers, int numTanks, int numMaxedGardeners, float treeIncome) throws GameActionException {
         // TODO: a common use case is to have exactly 1 non-zero argument. maybe we should separate this into n
         // separate methods?
 
@@ -142,9 +142,8 @@ public strictfp class Messaging extends RobotPlayer {
             rc.broadcast(SOLDIER_COUNT_CHANNEL, numSoldiers);
             rc.broadcast(TANK_COUNT_CHANNEL, numTanks);
             rc.broadcast(MAXED_GARDENER_COUNT_CHANNEL, numMaxedGardeners);
-            int encodedIncome = Float.floatToIntBits(treeIncome);
-            rc.broadcast(TOTAL_TREE_INCOME_CHANNEL, encodedIncome);
-            rc.broadcast(TREE_COUNT_CHANNEL, numTrees);
+            rc.broadcastFloat(TOTAL_TREE_INCOME_CHANNEL, treeIncome);
+            resetStationaryGardeneryPositions();
         } else {
             // otherwise send only as necessary
             if (numArchons > 0) {
@@ -176,14 +175,8 @@ public strictfp class Messaging extends RobotPlayer {
                 rc.broadcast(MAXED_GARDENER_COUNT_CHANNEL, numMaxedGardeners);
             }
             if (treeIncome > 0) {
-                int encodedTreeIncome = rc.readBroadcast(TOTAL_TREE_INCOME_CHANNEL);
-                treeIncome += Float.intBitsToFloat(encodedTreeIncome);
-                int encodedIncome = Float.floatToIntBits(treeIncome);
-                rc.broadcast(TOTAL_TREE_INCOME_CHANNEL, encodedIncome);
-            }
-            if (numTrees > 0) {
-                numTrees += rc.readBroadcast(TREE_COUNT_CHANNEL);
-                rc.broadcast(TREE_COUNT_CHANNEL, numTrees);
+                treeIncome += rc.readBroadcastFloat(TOTAL_TREE_INCOME_CHANNEL);
+                rc.broadcastFloat(TOTAL_TREE_INCOME_CHANNEL, treeIncome);
             }
         }
     }
@@ -324,24 +317,76 @@ public strictfp class Messaging extends RobotPlayer {
     }
 
     static void setNearbyTreeHealth(float amount) throws GameActionException {
-        int encoded = Float.floatToIntBits(amount);
-        rc.broadcast(NEARBY_TREE_HEALTH_CHANNEL, encoded);
+        rc.broadcastFloat(NEARBY_TREE_HEALTH_CHANNEL, amount);
     }
     static float getNearbyTreeHealth() throws GameActionException {
-        int encoded = rc.readBroadcast(NEARBY_TREE_HEALTH_CHANNEL);
-        return Float.intBitsToFloat(encoded);
+        return rc.readBroadcastFloat(NEARBY_TREE_HEALTH_CHANNEL);
     }
     static void setHasGift(boolean hasGift) throws GameActionException {
-        rc.broadcast(HAS_GIFTS_CHANNEL, hasGift? 1 : 0);
+        rc.broadcastBoolean(HAS_GIFTS_CHANNEL, hasGift);
     }
     static boolean getHasGift() throws GameActionException {
-        return rc.readBroadcast(HAS_GIFTS_CHANNEL) == 1;
+        return rc.readBroadcastBoolean(HAS_GIFTS_CHANNEL);
     }
     static void broadcastInitialBuildOrder(int buildOrder) throws GameActionException {
         rc.broadcast(INITIAL_BUILD_ORDER_CHANNEL, buildOrder);
     }
     static int readInitialBuildOrder() throws GameActionException {
         return rc.readBroadcast(INITIAL_BUILD_ORDER_CHANNEL);
+    }
+
+    public static void resetStationaryGardeneryPositions() throws GameActionException {
+        rc.broadcast(GARDENER_POSITIONS_SIZE_CHANNEL, 0);
+    }
+    public static void setStationaryGardeneryPosition(MapLocation location) throws GameActionException {
+        int size = rc.readBroadcast(GARDENER_POSITIONS_SIZE_CHANNEL);
+        if(size >= MAX_GARDENER_POSITIONS_TO_COUNT){
+            return;
+        }
+        int idx = 2*size;
+        rc.broadcastFloat(GARDENER_POSITIONS_STACK_START_CHANNEL+idx, location.x);
+        rc.broadcastFloat(GARDENER_POSITIONS_STACK_START_CHANNEL+idx+1, location.y);
+        rc.broadcast(GARDENER_POSITIONS_SIZE_CHANNEL, size+1);
+    }
+    public static boolean anyGardenersInThreshold() throws GameActionException {
+        int size = rc.readBroadcast(GARDENER_POSITIONS_SIZE_CHANNEL);
+        float thresholdDistSq = RobotPlayer.thresholdDist * RobotPlayer.thresholdDist;
+        for(int i=0; i < size; i++){
+            int idx = 2*i;
+            float x = rc.readBroadcastFloat(GARDENER_POSITIONS_STACK_START_CHANNEL+idx);
+            float y = rc.readBroadcastFloat(GARDENER_POSITIONS_STACK_START_CHANNEL+idx+1);
+            float dx = rc.getLocation().x - x;
+            float dy = rc.getLocation().y - y;
+            float distSq = dx * dx + dy * dy;
+
+            if (distSq <= thresholdDistSq) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static void computeSquareDistanceToGardeners() throws GameActionException {
+        gardenerDistX = 0f;
+        gardenerDistY = 0f;
+        int size = rc.readBroadcast(GARDENER_POSITIONS_SIZE_CHANNEL);
+        float thresholdDistSq = RobotPlayer.thresholdDist * RobotPlayer.thresholdDist;
+        for (int i = 0; i < size; i++) {
+            int idx = 2 * i;
+            float x = rc.readBroadcastFloat(GARDENER_POSITIONS_STACK_START_CHANNEL + idx);
+            float y = rc.readBroadcastFloat(GARDENER_POSITIONS_STACK_START_CHANNEL + idx + 1);
+            float dx = rc.getLocation().x - x;
+            float dy = rc.getLocation().y - y;
+            float distSq = dx * dx + dy * dy;
+
+            if (distSq > thresholdDistSq) {
+                continue;
+            }
+            double dist = StrictMath.sqrt(distSq);
+
+            gardenerDistX += (float) (dx / dist) / distSq;
+            gardenerDistY += (float) (dy / dist) / distSq;
+        }
     }
 
 }

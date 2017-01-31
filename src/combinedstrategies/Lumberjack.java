@@ -19,13 +19,13 @@ public class Lumberjack extends RobotPlayer implements RobotHandler {
         neutralTreesInVision = rc.senseNearbyTrees(type.sensorRadius, Team.NEUTRAL);
         neutralTreesInInteractionRadius = rc.senseNearbyTrees(type.bodyRadius + GameConstants.INTERACTION_DIST_FROM_EDGE, Team.NEUTRAL);
 
-        if (!tryMoveTowardEnemy(5500)) {
+        if (!tryMoveTowardEnemy(10500)) {
             if (!attacked && neutralTreesInInteractionRadius.length > 0) {
                 // if we've found a neutral tree, don't bother moving at all.
                 chopBest();
                 attacked = true;
             } else if (neutralTreesInVision.length > 0) {
-                tryMoveTowardNeutralTrees(7500);
+                tryMoveTowardNeutralTrees(12500);
                 neutralTreesInVision = rc.senseNearbyTrees(type.sensorRadius, Team.NEUTRAL);
                 // try again
                 if (!attacked && neutralTreesInInteractionRadius.length > 0) {
@@ -37,7 +37,7 @@ public class Lumberjack extends RobotPlayer implements RobotHandler {
                 if (needToMoveAwayFromPack() && turnsAlive < 50 && rc.getRoundNum() < 2500) {
                     moveAwayFromPack();
                 } else {
-                    tryMoveTowardEnemyArchons(7500);
+                    tryMoveTowardEnemyArchons(12500);
                 }
             }
         }
@@ -52,7 +52,7 @@ public class Lumberjack extends RobotPlayer implements RobotHandler {
     @Override
     public void reportUnitCount() throws GameActionException {
         if (Messaging.shouldSendHeartbeat()) {
-            Messaging.sendHeartbeatSignal(0, 0, 1, 0, 0, 0, 0, 0f,0);
+            Messaging.sendHeartbeatSignal(0, 0, 1, 0, 0, 0, 0, 0f);
         }
     }
 

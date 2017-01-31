@@ -15,13 +15,13 @@ public class Tank extends RobotPlayer implements RobotHandler {
     public void onLoop() throws GameActionException {
         // Tank movement is hard, because you can accidentally destroy your own trees.
         // for now, don't move.
-        tryAttackEnemy(9000);
+        tryAttackEnemy(14000);
     }
 
     @Override
     public void reportUnitCount() throws GameActionException {
         if (Messaging.shouldSendHeartbeat()) {
-            Messaging.sendHeartbeatSignal(0, 0, 1, 0, 0, 0, 0, 0f,0);
+            Messaging.sendHeartbeatSignal(0, 0, 1, 0, 0, 0, 0, 0f);
         }
     }
 
