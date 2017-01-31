@@ -124,6 +124,11 @@ public strictfp class Messaging extends RobotPlayer {
         return rc.getRoundNum() % TURNS_BETWEEN_COUNTS == 1;
     }
 
+    static boolean sentHeartbeatLastTurn() {
+        // use 1 as the remainder, since the game starts on round 1
+        return rc.getRoundNum() % TURNS_BETWEEN_COUNTS == 2;
+    }
+
     static void sendHeartbeatSignal(int numArchons, int numGardeners, int numLumberjacks, int numScouts,
                                     int numSoldiers, int numTanks, int numMaxedGardeners, float treeIncome) throws GameActionException {
         // TODO: a common use case is to have exactly 1 non-zero argument. maybe we should separate this into n
@@ -356,6 +361,22 @@ public strictfp class Messaging extends RobotPlayer {
         rc.broadcastFloat(GARDENER_POSITIONS_STACK_START_CHANNEL+idx+1, location.y);
         rc.broadcast(GARDENER_POSITIONS_SIZE_CHANNEL, size+1);
     }
+
+    public static boolean isRecentStationaryGardenerPosition(MapLocation loc) throws GameActionException {
+        int size = rc.readBroadcast(GARDENER_POSITIONS_SIZE_CHANNEL);
+        int minVal = Math.max(size - 3, 0);
+        for (int i = size - 1; i >= minVal; i--) {
+            int idx = 2 * i;
+            float x = rc.readBroadcastFloat(GARDENER_POSITIONS_STACK_START_CHANNEL + idx);
+            float y = rc.readBroadcastFloat(GARDENER_POSITIONS_STACK_START_CHANNEL + idx + 1);
+            float dx = loc.x - x;
+            float dy = loc.y - y;
+            if (dx * dx + dy * dy < 1.0f) {
+                return true;
+            }
+        }
+        return false;
+    }
     public static boolean anyGardenersInThreshold() throws GameActionException {
         int size = rc.readBroadcast(GARDENER_POSITIONS_SIZE_CHANNEL);
         float thresholdDistSq = RobotPlayer.thresholdDist * RobotPlayer.thresholdDist;
@@ -397,4 +418,7 @@ public strictfp class Messaging extends RobotPlayer {
         }
     }
 
+    public static boolean shouldSendAdhocMessages() {
+        return rc.getRoundNum() < 400 || itemBuiltCount < 10;
+    }
 }

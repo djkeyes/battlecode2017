@@ -757,6 +757,69 @@ public strictfp class RobotPlayer {
     }
 
 
+    private static MapLocation[] prevSensed = null;
+    private static MapLocation prevClosestSensed = null;
+
+    static boolean tryMoveTowardDistantEnemies(int maxBytecodes) throws GameActionException {
+        // TODO: check locations broadcasted by other robots?
+        // ideally, we would like to use both rc.senseBroadcastingRobotLocations() and our own broadcasts, but we
+        // would have to dedup our own robots. maybe we should only report every N turns?
+
+        if (!Messaging.shouldSendAdhocMessages()) {
+            // only check on turns when there are few enemy heartbeats
+            if (!Messaging.sentHeartbeatLastTurn()) {
+                prevSensed = rc.senseBroadcastingRobotLocations();
+            }
+            // find closest (unless they're in vision, in which case they should be visible already
+            MapLocation myLoc = rc.getLocation();
+            float prevClosestDist;
+            if (prevClosestSensed != null) {
+                prevClosestDist = prevClosestSensed.distanceTo(myLoc);
+                if (prevClosestDist < type.sensorRadius * 0.8f) {
+                    prevClosestDist = Float.POSITIVE_INFINITY;
+                    prevClosestSensed = null;
+                }
+            } else {
+                prevClosestDist = Float.POSITIVE_INFINITY;
+                prevClosestSensed = null;
+            }
+            if (prevSensed != null) {
+                for (MapLocation loc : prevSensed) {
+                    float dist = myLoc.distanceTo(loc);
+                    if (dist < prevClosestDist && dist > type.sensorRadius) {
+                        // gardeners don't pay attention to the ad-hoc state
+                        if (!Messaging.isRecentStationaryGardenerPosition(loc)) {
+                            prevClosestDist = dist;
+                            prevClosestSensed = loc;
+                        }
+                    }
+                }
+            }
+
+            if (prevClosestSensed != null) {
+                if(tryDodgeBulletsInDirection(maxBytecodes, rc.getLocation().directionTo(prevClosestSensed))){
+                    return true;
+                } else {
+                    return tryMove(rc.getLocation().directionTo(prevClosestSensed), 13.0f, 12);
+                }
+            }
+        }
+
+        // fallback: move toward initial archon positions
+        MapLocation[] archonLocs = rc.getInitialArchonLocations(them);
+        // target each one in order
+
+        int idx = (rc.getRoundNum() / 200) % archonLocs.length;
+        MapLocation target = archonLocs[idx];
+
+        if (tryDodgeBulletsInDirection(maxBytecodes, rc.getLocation().directionTo(target))) {
+            return true;
+        } else {
+            return tryMove(rc.getLocation().directionTo(target), 13.0f, 12);
+        }
+    }
+
+
     static boolean tryMoveTowardEnemy(int maxBytecodes) throws GameActionException {
         // since we're melee, just move toward an enemy
         // preferably one that can't outrun us

@@ -167,7 +167,9 @@ strictfp class Archon extends RobotPlayer implements RobotHandler {
         if (Messaging.shouldSendHeartbeat()) {
             Messaging.sendHeartbeatSignal(1, builtGardener ? 1 : 0, 0, 0, 0, 0, 0, 0f);
         } else if (builtGardener) {
-            Messaging.reportBuiltGardener();
+            if(Messaging.shouldSendAdhocMessages()){
+                Messaging.reportBuiltGardener();
+            }
             builtGardener = false;
         }
     }

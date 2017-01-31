@@ -99,7 +99,7 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
             if (isStationary) {
                 Messaging.setStationaryGardeneryPosition(rc.getLocation());
             }
-        } else if (builtUnit) {
+        } else if (builtUnit && Messaging.shouldSendAdhocMessages()) {
             switch (typeToBuild) {
                 case SCOUT:
                     Messaging.reportBuiltScout();
