@@ -1,6 +1,7 @@
 package combinedstrategies;
 
 import battlecode.common.GameActionException;
+import battlecode.common.MapLocation;
 
 public strictfp class Messaging extends RobotPlayer {
 
@@ -31,6 +32,9 @@ public strictfp class Messaging extends RobotPlayer {
     static final int MAP_Y_UPPERLIMIT_CHANNEL = 21;
     static final int MAP_X_LOWERLIMIT_CHANNEL = 22;
     static final int MAP_X_UPPERLIMIT_CHANNEL = 23;
+
+    static final int GARDENER_POSITIONS_SIZE_CHANNEL = 100;
+    static final int GARDENER_POSITIONS_STACK_START_CHANNEL = 101;
 
 
     // Enemy positions. For now we will reserve 200 channels for this, which is 100 positions (x, y).
@@ -68,6 +72,8 @@ public strictfp class Messaging extends RobotPlayer {
     static final int RUSH_STRATEGY = 2;
     static int currentStrategy;
 
+    static final int MAX_GARDENER_POSITIONS_TO_COUNT = 50;
+    static float gardenerDistX, gardenerDistY;
 
     static void tryGetUnitCounts() throws GameActionException {
         // Periodically, all counts are reset to track robot deaths.
@@ -132,6 +138,7 @@ public strictfp class Messaging extends RobotPlayer {
             rc.broadcast(TANK_COUNT_CHANNEL, numTanks);
             rc.broadcast(MAXED_GARDENER_COUNT_CHANNEL, numMaxedGardeners);
             rc.broadcastFloat(TOTAL_TREE_INCOME_CHANNEL, treeIncome);
+            resetStationaryGardeneryPositions();
         } else {
             // otherwise send only as necessary
             if (numArchons > 0) {
@@ -315,6 +322,60 @@ public strictfp class Messaging extends RobotPlayer {
     }
     static int readInitialBuildOrder() throws GameActionException {
         return rc.readBroadcast(INITIAL_BUILD_ORDER_CHANNEL);
+    }
+
+    public static void resetStationaryGardeneryPositions() throws GameActionException {
+        rc.broadcast(GARDENER_POSITIONS_SIZE_CHANNEL, 0);
+    }
+    public static void setStationaryGardeneryPosition(MapLocation location) throws GameActionException {
+        int size = rc.readBroadcast(GARDENER_POSITIONS_SIZE_CHANNEL);
+        if(size >= MAX_GARDENER_POSITIONS_TO_COUNT){
+            return;
+        }
+        int idx = 2*size;
+        rc.broadcastFloat(GARDENER_POSITIONS_STACK_START_CHANNEL+idx, location.x);
+        rc.broadcastFloat(GARDENER_POSITIONS_STACK_START_CHANNEL+idx+1, location.y);
+        rc.broadcast(GARDENER_POSITIONS_SIZE_CHANNEL, size+1);
+    }
+    public static boolean anyGardenersInThreshold() throws GameActionException {
+        int size = rc.readBroadcast(GARDENER_POSITIONS_SIZE_CHANNEL);
+        float thresholdDistSq = RobotPlayer.thresholdDist * RobotPlayer.thresholdDist;
+        for(int i=0; i < size; i++){
+            int idx = 2*i;
+            float x = rc.readBroadcastFloat(GARDENER_POSITIONS_STACK_START_CHANNEL+idx);
+            float y = rc.readBroadcastFloat(GARDENER_POSITIONS_STACK_START_CHANNEL+idx+1);
+            float dx = rc.getLocation().x - x;
+            float dy = rc.getLocation().y - y;
+            float distSq = dx * dx + dy * dy;
+
+            if (distSq <= thresholdDistSq) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static void computeSquareDistanceToGardeners() throws GameActionException {
+        gardenerDistX = 0f;
+        gardenerDistY = 0f;
+        int size = rc.readBroadcast(GARDENER_POSITIONS_SIZE_CHANNEL);
+        float thresholdDistSq = RobotPlayer.thresholdDist * RobotPlayer.thresholdDist;
+        for (int i = 0; i < size; i++) {
+            int idx = 2 * i;
+            float x = rc.readBroadcastFloat(GARDENER_POSITIONS_STACK_START_CHANNEL + idx);
+            float y = rc.readBroadcastFloat(GARDENER_POSITIONS_STACK_START_CHANNEL + idx + 1);
+            float dx = rc.getLocation().x - x;
+            float dy = rc.getLocation().y - y;
+            float distSq = dx * dx + dy * dy;
+
+            if (distSq > thresholdDistSq) {
+                continue;
+            }
+            double dist = StrictMath.sqrt(distSq);
+
+            gardenerDistX += (float) (dx / dist) / distSq;
+            gardenerDistY += (float) (dy / dist) / distSq;
+        }
     }
 
 }

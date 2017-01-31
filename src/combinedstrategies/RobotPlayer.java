@@ -532,7 +532,7 @@ public strictfp class RobotPlayer {
 
     static final float thresholdDist = 2f * RobotType.GARDENER.bodyRadius
             + 2f * Gardener.computeTreePlantingDist(Gardener.NUM_TREES_PER_GARDENER)
-            + GameConstants.BULLET_TREE_RADIUS;
+            + 2f * GameConstants.BULLET_TREE_RADIUS;
 
     static final boolean SAVE_STUCK_PACK_POSITIONS = true;
     static final float THRESHOLD_TO_BE_STUCK = 0.1f;
@@ -549,8 +549,8 @@ public strictfp class RobotPlayer {
         }
     }
 
-    static boolean needToMoveAwayFromPack() {
-        // check if any gardeners are less than thresholdDist away
+    static boolean needToMoveAwayFromPack() throws GameActionException {
+        // only check locally for archons
         for (RobotInfo ally : alliesInSignt) {
             // because these are in sorted order, we can terminate early
             if (ally.location.distanceTo(rc.getLocation())
@@ -558,7 +558,7 @@ public strictfp class RobotPlayer {
                 break;
             }
 
-            if (ally.type == RobotType.GARDENER || ally.type == RobotType.ARCHON) {
+            if (ally.type == RobotType.ARCHON) {
                 return true;
             }
         }
@@ -566,7 +566,7 @@ public strictfp class RobotPlayer {
         // TODO(daniel): check for map edge
         // I'm not sure if moving away from the edge will actually help though, since that indicates that things are
         // pretty crowded already.
-        return false;
+        return Messaging.anyGardenersInThreshold();
     }
 
     static void moveAwayFromPack() throws GameActionException {
@@ -574,10 +574,14 @@ public strictfp class RobotPlayer {
         // ask dk if you want to know where these constants came from
         float K = 50.0f;
         float Kstuck = 350.0f;
-        float fx = 0f;
-        float fy = 0f;
+
+        Messaging.computeSquareDistanceToGardeners();
+        float fx = K*Messaging.gardenerDistX;
+        float fy = K*Messaging.gardenerDistY;
+
+        // check locally for archons
         for (RobotInfo ally : alliesInSignt) {
-            if (ally.type == RobotType.GARDENER || ally.type == RobotType.ARCHON) {
+            if (ally.type == RobotType.ARCHON) {
                 float distSq = ally.location.distanceSquaredTo(rc.getLocation());
                 Direction dir = ally.location.directionTo(rc.getLocation());
                 fx += dir.getDeltaX(K) / distSq;

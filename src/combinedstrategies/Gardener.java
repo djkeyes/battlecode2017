@@ -95,6 +95,10 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
             Messaging.sendHeartbeatSignal(0, 1, inConstruction.numLumberjacks,
                     inConstruction.numScouts, inConstruction.numSoldiers, inConstruction.numTanks, isMaxed,
                     adjacentTreeIncome);
+
+            if (isStationary) {
+                Messaging.setStationaryGardeneryPosition(rc.getLocation());
+            }
         } else if (builtUnit) {
             switch (typeToBuild) {
                 case SCOUT:
@@ -111,12 +115,9 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
                     break;
             }
         }
-
     }
 
     private void buildNaiveClusters() throws GameActionException {
-        // TODO: broadcast current robot centers
-
         // check what to build
         if (rc.getBuildCooldownTurns() == 0) {
             determineWhatToBuild();
@@ -136,6 +137,9 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
             if (!isStationary) {
                 isStationary = true;
                 initializeTreePattern();
+                if(!Messaging.shouldSendHeartbeat()) {
+                    Messaging.setStationaryGardeneryPosition(rc.getLocation());
+                }
             }
 
             if (shouldBuildTree) {
