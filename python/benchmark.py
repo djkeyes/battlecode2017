@@ -12,7 +12,7 @@ src_dir = './src/'
 # benchmarks, in the format (package name, commit hash, debug params)
 # (use a singleton list if no params to try)
 benchmarks = [
-    ('combinedstrategies', '16a6621f6df0e2c25bfcb1c572d95efe15d40916', ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']),
+    ('combinedstrategies', 'b7755d7012b7d44a1aa28d0967bf8eb6821a0b88', ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']),
     ('turtlebot', '16a6621f6df0e2c25bfcb1c572d95efe15d40916', ['']),
     ('noop', '16a6621f6df0e2c25bfcb1c572d95efe15d40916', [''])
 ]
