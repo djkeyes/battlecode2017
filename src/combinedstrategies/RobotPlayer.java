@@ -590,9 +590,15 @@ public strictfp class RobotPlayer {
         }
 
         // If everything else fails try a random direction.
-        Direction random_dir = randomDirection();
-        if (canMoveDir.invoke(random_dir)) {
-            rc.move(random_dir);
+        int numRetries = 20;
+        for (int i = 0; i < numRetries; i++) {
+            Direction random_dir = randomDirection();
+            if (canMoveDir.invoke(random_dir)) {
+                rc.move(random_dir);
+                previous_dir = random_dir;
+                previous_side = -2;
+                return true;
+            }
         }
         previous_dir = dir;
         previous_side = -2;
