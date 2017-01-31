@@ -17,6 +17,7 @@
 *.ipr
 *.iws
 /.idea/
+*.orig
 
 
 # User-specific stuff:

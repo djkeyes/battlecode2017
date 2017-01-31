@@ -20,7 +20,11 @@ public class Scout extends RobotPlayer implements RobotHandler {
 	    static int SCOUTMAPEXPLORERCHANNEL2 = 108;
 	    static int SCOUTFOUNDFARMERXCHANNEL = 111;
 	    static int SCOUTFOUNDFARMERYCHANNEL = 112;
-
+	    
+	    // Local structure saving up the broadcasted enemy locations
+	    static int[] xposRead = null;
+	    static int[] yposRead = null;
+	    static int numpos = 0;
 		@Override
 	    public void init() throws GameActionException {
 
@@ -46,14 +50,25 @@ public class Scout extends RobotPlayer implements RobotHandler {
 	        }
 	        else{
 //	        	System.out.println("I observe opponent!");
-	        	observeOpponent();
+	        	varifyEnemyLocation();
+	        	// This strategy of the scout tries to figure out whether the broadcasted 
+	        	// location is actually worth attacking
+	        	
 	        	//rc.setIndicatorDot(my_loc, 0, 0, 255); // debug
 	        }
             checkIdle();
 
 	    }
 
-	    @Override
+	    static void varifyEnemyLocation() {
+			// Read in the enemy locations and find the latest possible place where its worth attacking
+	    	// Everytime when a new location get broadcasted TODO
+	    	//if (rc.getLocation().distanceTo(new MapLocation(xposRead,yposRead)) < type.strideRadius)
+	    	//Messaging.readEnemyPositions(xposRead, yposRead, numpos);
+			
+		}
+
+		@Override
 	    public void reportUnitCount() throws GameActionException {
 	        if (Messaging.shouldSendHeartbeat()) {
 	            Messaging.sendHeartbeatSignal(0, 0, 0, 1, 0, 0, 0, 0f,0);

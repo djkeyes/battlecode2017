@@ -15,10 +15,12 @@ public class Soldier extends RobotPlayer implements RobotHandler {
         if (!attackedAndMoved) {
             if (!tryMoveTowardEnemy(6500)) {
                 if (!tryDodgeBullets(7000)) {
-                    tryMoveTowardEnemyArchons(7500);
+                	if (!tryKiteLumberJacks(7500)){
+                		tryMoveTowardEnemyArchons(8000);
+                	}
                 }
             }
-            tryAttackEnemy(8000);
+            tryAttackEnemy(9000);
         }
     }
 

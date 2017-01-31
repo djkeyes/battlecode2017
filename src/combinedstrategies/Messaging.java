@@ -39,6 +39,11 @@ public strictfp class Messaging extends RobotPlayer {
     // will be stored.
     static final int ENEMY_POSITIONS_START_CHANNEL = 1000;
     static final int NUM_ENEMY_POSITIONS_CHANNELS = 200;
+    
+    // Evaluation of enemy positions, SCOUT has the right to take a closer look at the newly broadcasted location
+    // and return the ##ith## position of the enemy which it thinks is the most threatening
+    static final int MOST_VALUABLE_TARGET_ITH_CHANNEL = 1201;
+    static int CUR_MOST_VALUABLE_TARGET_ITH_CHANNEL = -1;
     // Specifies the "index" of last loaded channel.
     static int LAST_LOCATION_CHANNEL = -1;
     // Minimal distance squared to consider adding a new position.
@@ -281,7 +286,13 @@ public strictfp class Messaging extends RobotPlayer {
     static void readMapUpperY() throws GameActionException {
         upperLimitY = rc.readBroadcast(MAP_Y_UPPERLIMIT_CHANNEL);
     }
-
+    static void writeMostValuableTargetIthChannel(int ith_channel) throws GameActionException {
+    	if (ith_channel == CUR_MOST_VALUABLE_TARGET_ITH_CHANNEL){
+    		return;
+    	}
+    	rc.broadcast(MOST_VALUABLE_TARGET_ITH_CHANNEL, ith_channel);
+    	CUR_MOST_VALUABLE_TARGET_ITH_CHANNEL = ith_channel;
+    }
     static void readEnemyPositions(int[] xpos, int[] ypos, int num_pos) throws GameActionException {
         if (num_pos == LAST_LOCATION_CHANNEL)
             return;

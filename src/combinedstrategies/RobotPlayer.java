@@ -120,8 +120,80 @@ public strictfp class RobotPlayer {
     static boolean tryDodgeBullets(int maxBytecodes) throws GameActionException {
         return tryDodgeBulletsInDirection(maxBytecodes, null);
     }
+    static boolean tryKiteLumberJacks(int maxBytecodes) throws GameActionException {
+    	return tryKiteLumberJacks(maxBytecodes,null);
+    }
 
-    static final int MAX_BULLETS_TO_CONSIDER = 25;
+    static final int MAX_LUMBERJACKS_TO_CONSIDER = 3;
+    static final int LUMBERJACK_TO_CLOSE = 2;
+    private static RobotInfo[] relevantLJs = new RobotInfo[MAX_LUMBERJACKS_TO_CONSIDER];
+    static boolean tryKiteLumberJacks(int maxBytecodes, Direction desiredMovementDir) throws
+    	GameActionException{
+    	// to avoid being attacked from the nearby enemy lumberjacks, move away from them when get too close
+    	
+    	int relevant_LJ_counter = 0;
+    	float SaftyDistance = 0;
+    	for (RobotInfo enemy : enemiesInSight){
+    		if (enemy.getType() == RobotType.LUMBERJACK)
+    		{
+    			relevantLJs[relevant_LJ_counter] = enemy;
+    			relevant_LJ_counter ++;
+    			SaftyDistance += (enemy.getLocation().distanceTo(rc.getLocation())-
+    					LUMBERJACK_TO_CLOSE*RobotType.LUMBERJACK.strideRadius);
+    		}
+    		else if (relevant_LJ_counter >= 2 || enemy.getLocation().distanceTo(rc.getLocation())>
+    		LUMBERJACK_TO_CLOSE*RobotType.LUMBERJACK.strideRadius){
+    			// Only consider if the enemy lj would be able to attack in the next round
+    			break;
+    		}
+    	}
+    	if (relevant_LJ_counter == 0) return false;
+    	
+    	// Move part, basicly same idea as in bullet dodge, sample and find best spot on the stride edges
+        MapLocation bestLocation = null;
+
+        double thetaOffset = 0;
+        double maxTheta = 2.0 * StrictMath.PI;
+        // if we're trying to move in a particular direction, only sample from that hemisphere
+        if (desiredMovementDir != null) {
+            thetaOffset = desiredMovementDir.radians - StrictMath.PI / 2.;
+            maxTheta = StrictMath.PI;
+        } 
+        double theta;
+        float maxSaftyDistance = SaftyDistance;
+        // Now try all directions see if this direction escapes the unit away from LJ
+        while (SaftyDistance < 0f && Clock.getBytecodeNum() < maxBytecodes) {
+            // uniformly sample edges of stride space
+
+            theta = thetaOffset + maxTheta * gen.nextDouble();
+            MapLocation next = rc.getLocation().add((float) theta, type.strideRadius);
+            if (rc.canMove(next)) {
+                float distance_from_safe = countDistanceFromLumberJacks(next, relevantLJs, relevant_LJ_counter);
+                if (distance_from_safe > maxSaftyDistance) {
+                    maxSaftyDistance = distance_from_safe;
+                    bestLocation = next;
+                }
+            }
+        }
+
+        if(bestLocation == null){
+            return false;
+        }
+        rc.move(bestLocation);
+        return true;
+    }
+
+    static float countDistanceFromLumberJacks(MapLocation next, RobotInfo[] relevantLJs,
+			int relevant_LJ_counter) {
+    	float saftydistance = 0;
+		for (int i = 0; i < relevant_LJ_counter; i++){
+			saftydistance += (relevantLJs[i].getLocation().distanceTo(rc.getLocation())-
+					LUMBERJACK_TO_CLOSE*RobotType.LUMBERJACK.strideRadius);
+		}
+		return saftydistance;
+	}
+
+	static final int MAX_BULLETS_TO_CONSIDER = 25;
     private static BulletInfo[] relevantBullets = new BulletInfo[MAX_BULLETS_TO_CONSIDER];
     static boolean tryDodgeBulletsInDirection(int maxBytecodes, Direction desiredMovementDir) throws
             GameActionException {
