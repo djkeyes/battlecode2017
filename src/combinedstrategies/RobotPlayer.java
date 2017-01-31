@@ -875,13 +875,52 @@ public strictfp class RobotPlayer {
         }
 
         // try dodging. if there are no bullets to dodge, just move normally
-        if(tryDodgeBulletsInDirection(maxBytecodes, rc.getLocation().directionTo(target.getLocation()))){
+        if (tryDodgeBulletsInDirection(maxBytecodes, rc.getLocation().directionTo(target.getLocation()))) {
             return true;
         }
         // regardless of whether this successfully computes a move, return true since we're almost out of bytecodes
         tryMove(rc.getLocation().directionTo(target.getLocation()), 13.0f, 12);
         return true;
+    }
+
+    static boolean tryMoveWithinDistanceOfEnemy(int maxBytecodes, float desiredDist) throws GameActionException {
+        // since we're melee, just move toward an enemy
+        // preferably one that can't outrun us
+
+        if (enemiesInSight.length == 0) {
+            return false;
         }
+
+        RobotInfo closestEnemy = null;
+        float enemyDist = Float.MAX_VALUE;
+        for (RobotInfo enemy : enemiesInSight) {
+            float dist = rc.getLocation().distanceTo(enemy.getLocation());
+            if (dist < enemyDist) {
+                enemyDist = dist;
+                closestEnemy = enemy;
+            }
+        }
+
+        if (closestEnemy == null) {
+            return false;
+        }
+
+        Direction dir;
+        // either move to or away, to mantain distance
+        if(enemyDist > desiredDist){
+            dir = rc.getLocation().directionTo(closestEnemy.location);
+        } else {
+            dir = closestEnemy.location.directionTo(rc.getLocation());
+        }
+
+        // try dodging. if there are no bullets to dodge, just move normally
+        if (tryDodgeBulletsInDirection(maxBytecodes, dir)) {
+            return true;
+        }
+        // regardless of whether this successfully computes a move, return true since we're almost out of bytecodes
+        tryMove(dir, 13.0f, 12);
+        return true;
+    }
 
     static void reportMapAwareness() throws GameActionException{
     	detectMapBoundary();

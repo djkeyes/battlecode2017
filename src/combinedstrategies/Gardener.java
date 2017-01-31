@@ -2,6 +2,8 @@ package combinedstrategies;
 
 import battlecode.common.*;
 
+import java.util.Arrays;
+
 strictfp class Gardener extends RobotPlayer implements RobotHandler {
 
     private UnitConstuctionQueue inConstruction = new UnitConstuctionQueue(3);
@@ -63,6 +65,11 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
     private float adjacentTreeIncome = 0f;
     private int numUnitsBuilt = 0;
 
+    // computing gardener hull
+    private boolean allAnglesOkay = false;
+    private double minAngle, maxAngle;
+    private boolean onHull;
+
     @Override
     public void init() throws GameActionException {
         earliestRushTurn = computeEarliestRush();
@@ -118,6 +125,9 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
     }
 
     private void buildNaiveClusters() throws GameActionException {
+
+        checkGardenerConvexHull();
+
         // check what to build
         if (rc.getBuildCooldownTurns() == 0) {
             determineWhatToBuild();
@@ -152,6 +162,37 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
         }
 
         tryWateringNearby();
+    }
+
+    private void checkGardenerConvexHull() throws GameActionException {
+        double[] angles = Messaging.computeAnglesToGardeners();
+
+        if (angles.length < 3) {
+            allAnglesOkay = true;
+            onHull = true;
+            return;
+        }
+        allAnglesOkay = false;
+
+        Arrays.sort(angles);
+
+        double halfCircle = StrictMath.PI;
+        if (2. * StrictMath.PI + angles[0] - angles[angles.length - 1] > halfCircle) {
+            minAngle = angles[angles.length - 1];
+            maxAngle = angles[0] +2.0 *  StrictMath.PI;
+            onHull = true;
+            return;
+        }
+        for (int i = 1; i < angles.length; i++) {
+            if (angles[i] - angles[i - 1] > halfCircle) {
+                minAngle = angles[i];
+                maxAngle = angles[i - 1];
+                onHull = true;
+                return;
+            }
+        }
+        onHull = false;
+
     }
 
     private MapLocation computeTreePosition(int treeIdx) {
@@ -282,8 +323,13 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
             return false;
         }
 
+        if (typeToBuild == RobotType.TANK) {
+            // special logic for tanks, so we don't tread over the flowerbeds
+            // only build a tank if we're on the exterior of the convex hull of gardeners
+            return tryBuildTank(maxBytecodes);
+        }
         // first check planting locations
-        if(plantingPositions[0] != null) {
+        if (plantingPositions[0] != null) {
             for (int i = 0; i < NUM_TREES_PER_GARDENER; i++) {
                 MapLocation buildLoc = computeTreePosition(i);
                 if (rc.canMove(plantingPositions[i])
@@ -311,6 +357,53 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
         return false;
     }
 
+    private boolean tryBuildTank(int maxBytecodes) throws GameActionException {
+        if(!onHull){
+            return false;
+        }
+
+        Direction outward;
+        double arcSize;
+        if (allAnglesOkay) {
+            outward = Direction.NORTH;
+            arcSize = 2.0 * StrictMath.PI;
+        } else {
+            outward = new Direction((float) ((minAngle + maxAngle) / 2.));
+            arcSize = maxAngle - minAngle;
+        }
+        // first check planting locations
+        if (plantingPositions[0] != null) {
+            for (int i = 0; i < NUM_TREES_PER_GARDENER; i++) {
+                MapLocation buildLoc = computeTreePosition(i);
+                if (StrictMath.abs(plantingDirs[i].radiansBetween(outward)) > StrictMath.PI / 2) {
+                    continue;
+                }
+                if (rc.canMove(plantingPositions[i])
+                        && rc.onTheMap(buildLoc, typeToBuild.bodyRadius)
+                        && !rc.isCircleOccupied(buildLoc, typeToBuild.bodyRadius)) {
+                    rc.move(plantingPositions[i]);
+                    rc.buildRobot(typeToBuild, plantingDirs[i]);
+                    inConstruction.enqueue(typeToBuild, rc.getRoundNum() + 20);
+                    numUnitsBuilt++;
+                    return true;
+                }
+            }
+        }
+
+        // then just try adjacent positions within the hemisphere. maybe someone else is in the way.
+        while (Clock.getBytecodeNum() < maxBytecodes) {
+            double theta = gen.nextDouble() * arcSize;
+            Direction dir = new Direction((float) (minAngle + theta));
+            if (rc.canBuildRobot(typeToBuild, dir)) {
+                rc.buildRobot(typeToBuild, dir);
+                inConstruction.enqueue(typeToBuild, rc.getRoundNum() + 20);
+                numUnitsBuilt++;
+                return true;
+            }
+        }
+        return false;
+    }
+
     private void buildTreeGrid() throws GameActionException {
         // TODO
     }
@@ -326,19 +419,31 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
             if (needDefences || (!canAddTree && Messaging.currentStrategy == Messaging.MACRO_ARMY_STRATEGY)) {
                 shouldBuildTree = false;
                 // if we need defenses immediately, soldiers are usually a more direct counter
-                if(enemiesInSight.length > 0 || Messaging.soldierCount == 0){
+                if (enemiesInSight.length > 0 || Messaging.soldierCount == 0) {
                     typeToBuild = RobotType.SOLDIER;
-                } else{
+                } else {
                     // lumberjacks aren't that great. Only build them if there's work to do
+                    boolean decided = false;
                     if (numUnitsBuilt % 2 == 1) {
                         int numNearbyNeutralTrees = rc.senseNearbyTrees(type.sensorRadius - type.bodyRadius - RobotType
                                 .LUMBERJACK.bodyRadius, Team.NEUTRAL).length;
-                        if(numNearbyNeutralTrees > 0 || Messaging.lumberjackCount < 10) {
+                        if (numNearbyNeutralTrees > 0 || Messaging.lumberjackCount <= 3) {
                             typeToBuild = RobotType.LUMBERJACK;
-                        } else {
-                            typeToBuild = RobotType.SOLDIER;
+                            decided = true;
                         }
-                    } else {
+                    }
+                    if (!decided) {
+                        if (Messaging.soldierCount > 15) {
+                            // try to build a tank
+                            if (rc.getTeamBullets() >= RobotType.TANK.bulletCost + RobotType.SOLDIER.bulletCost) {
+                                typeToBuild = RobotType.SOLDIER;
+                            } else {
+                                typeToBuild = RobotType.TANK;
+                            }
+                            decided = true;
+                        }
+                    }
+                    if (!decided) {
                         typeToBuild = RobotType.SOLDIER;
                     }
                 }
@@ -413,9 +518,22 @@ strictfp class Gardener extends RobotPlayer implements RobotHandler {
                         && !rc.isCircleOccupied(treePosition, GameConstants.BULLET_TREE_RADIUS)) {
                     nextTreeIdx = i;
                     numSlots++;
-                    // leave one slot open
-                    if (numSlots >= 2) {
+                    if (!onHull) {
+                        // lots of allies--wall in
                         return true;
+                    } else {
+                        if (typeToBuild == RobotType.TANK) {
+                            // leave two slots open
+                            // TODO: make sure they're adjacent slots
+                            if (numSlots >= 3) {
+                                return true;
+                            }
+                        } else {
+                            // leave one slot open
+                            if (numSlots >= 2) {
+                                return true;
+                            }
+                        }
                     }
                 }
             }

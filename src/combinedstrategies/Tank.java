@@ -1,6 +1,9 @@
 package combinedstrategies;
 
-import battlecode.common.*;
+import battlecode.common.Direction;
+import battlecode.common.GameActionException;
+import battlecode.common.MapLocation;
+import battlecode.common.TreeInfo;
 
 public class Tank extends RobotPlayer implements RobotHandler {
 
@@ -15,7 +18,7 @@ public class Tank extends RobotPlayer implements RobotHandler {
     public void onLoop() throws GameActionException {
         senseNearbyAlliedTrees();
         if (!tryKiteLumberJacks(10000)) {
-            if (!tryMoveTowardEnemy(11500)) {
+            if (!tryMoveWithinDistanceOfEnemy(11500, 5f)) {
                 tryMoveTowardDistantEnemies(12500);
             }
         }
@@ -29,7 +32,7 @@ public class Tank extends RobotPlayer implements RobotHandler {
     @Override
     public void reportUnitCount() throws GameActionException {
         if (Messaging.shouldSendHeartbeat()) {
-            Messaging.sendHeartbeatSignal(0, 0, 1, 0, 0, 0, 0, 0f);
+            Messaging.sendHeartbeatSignal(0, 0, 0, 0, 0, 1, 0, 0f);
         }
     }
 
@@ -61,7 +64,7 @@ public class Tank extends RobotPlayer implements RobotHandler {
 
     private static boolean anyAlliedTreesInLoc(MapLocation loc) {
         for (TreeInfo alliedTree : alliedTreesInStride) {
-            if (loc.distanceTo(alliedTree.location) <= type.bodyRadius) {
+            if (loc.distanceTo(alliedTree.location) <= type.bodyRadius + 0.001f) {
                 return true;
             }
         }

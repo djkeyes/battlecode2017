@@ -3,6 +3,8 @@ package combinedstrategies;
 import battlecode.common.GameActionException;
 import battlecode.common.MapLocation;
 
+import java.util.Arrays;
+
 public strictfp class Messaging extends RobotPlayer {
 
     // CHANNEL ASSIGNMENTS
@@ -416,6 +418,31 @@ public strictfp class Messaging extends RobotPlayer {
             gardenerDistX += (float) (dx / dist) / distSq;
             gardenerDistY += (float) (dy / dist) / distSq;
         }
+    }
+
+    private static double[] angles = new double[0];
+    public static double[] computeAnglesToGardeners() throws GameActionException {
+        if(shouldSendHeartbeat()){
+            // used cached values
+            return angles;
+        }
+
+        MapLocation myLoc = rc.getLocation();
+        int size = rc.readBroadcast(GARDENER_POSITIONS_SIZE_CHANNEL);
+        angles = new double[size];
+        int head = 0;
+        for (int i = 0; i < size; i++) {
+            int idx = 2 * i;
+            float x = rc.readBroadcastFloat(GARDENER_POSITIONS_STACK_START_CHANNEL + idx);
+            float y = rc.readBroadcastFloat(GARDENER_POSITIONS_STACK_START_CHANNEL + idx + 1);
+            float dx = x - myLoc.x;
+            float dy = y - myLoc.y;
+            if(dx*dx + dy*dy < 1.0){
+                continue;
+            }
+            angles[head++] = StrictMath.atan2(dy, dx);
+        }
+        return angles = Arrays.copyOf(angles, head);
     }
 
     public static boolean shouldSendAdhocMessages() {
